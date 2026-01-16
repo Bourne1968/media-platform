@@ -57,9 +57,3 @@ ai:
     model: qwen-plus # 推荐使用 qwen-plus (均衡) 或 qwen-max (最强)，qwen-turbo (最快/免费额度多)
     image-model: wanx-v1 # 图片生成模型 (注意：OpenAI兼容接口可能不支持图片生成，需确认)
 
-  baidu:
-    api-key: your-baidu-api-key
-    secret-key: your-baidu-secret-key
-    access-token-url: https://aip.baidubce.com/oauth/2.0/token
-    chat-url: https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant
-    image-url: https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/text2image/sd_xl
