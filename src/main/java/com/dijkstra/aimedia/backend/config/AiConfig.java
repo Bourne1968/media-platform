@@ -8,6 +8,9 @@ import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+
 /**
  * AI配置类
  * 
@@ -33,6 +36,11 @@ public class AiConfig {
      */
     private Baidu baidu;
     
+    /**
+     * 代理配置
+     */
+    private ProxyConfig proxy;
+    
     @Data
     public static class OpenAI {
         private String apiKey;
@@ -50,16 +58,26 @@ public class AiConfig {
         private String imageUrl;
     }
     
+    @Data
+    public static class ProxyConfig {
+        private String host;
+        private Integer port;
+    }
+    
     /**
      * 配置RestTemplate
      */
     @Bean
     public RestTemplate restTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        ClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        ((SimpleClientHttpRequestFactory) factory).setConnectTimeout(30000);
-        ((SimpleClientHttpRequestFactory) factory).setReadTimeout(60000);
-        restTemplate.setRequestFactory(factory);
-        return restTemplate;
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(30000);
+        factory.setReadTimeout(60000);
+        
+        if (proxy != null && proxy.getHost() != null && proxy.getPort() != null) {
+            Proxy javaProxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxy.getHost(), proxy.getPort()));
+            factory.setProxy(javaProxy);
+        }
+        
+        return new RestTemplate(factory);
     }
 }

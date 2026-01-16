@@ -42,14 +42,21 @@ server:
 
 # AI API 配置
 ai:
-  # 使用的AI服务商: openai(DeepSeek兼容), baidu
-  # 如果 DeepSeek 余额不足，可以切换到 baidu
-  provider: openai  # 改为 baidu 可切换到百度文心一言
+  # 使用的AI服务商: openai(DeepSeek兼容/Gemini兼容/阿里通义), baidu
+  provider: openai
+
+    
   openai:
-    api-key: sk-1a94684a49b743d987d56f833ff4ecde
-    base-url: https://api.deepseek.com/v1
-    model: deepseek-chat
-    image-model: dall-e-2
+    # 阿里通义千问 (Qwen) 配置
+    # 请前往阿里云百炼控制台获取 API Key: https://bailian.console.aliyun.com/
+    api-key: sk-c87c67ad1cc54762af37489b87b78adf # 请替换为您的阿里云 DashScope API Key
+    
+    # Base URL 配置
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1 # 国内使用
+    
+    model: qwen-plus # 推荐使用 qwen-plus (均衡) 或 qwen-max (最强)，qwen-turbo (最快/免费额度多)
+    image-model: wanx-v1 # 图片生成模型 (注意：OpenAI兼容接口可能不支持图片生成，需确认)
+
   baidu:
     api-key: your-baidu-api-key
     secret-key: your-baidu-secret-key
