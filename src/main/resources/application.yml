@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: media-platform-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/media_platform?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: Deng2846240558
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: MediaPlatformHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+# MyBatis Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.dijkstra.aimedia.backend.entity
+
+# JWT 配置
+jwt:
+  secret: media-platform-secret-key-2024-ai-creation-tool
+  expiration: 86400000 # 24小时（毫秒）
+
+# 服务器配置
+server:
+  port: 8081
+  servlet:
+    context-path: /api
+
+# AI API 配置
+ai:
+  # 使用的AI服务商: openai(DeepSeek兼容), baidu
+  # 如果 DeepSeek 余额不足，可以切换到 baidu
+  provider: openai  # 改为 baidu 可切换到百度文心一言
+  openai:
+    api-key: sk-1a94684a49b743d987d56f833ff4ecde
+    base-url: https://api.deepseek.com/v1
+    model: deepseek-chat
+    image-model: dall-e-2
+  baidu:
+    api-key: your-baidu-api-key
+    secret-key: your-baidu-secret-key
+    access-token-url: https://aip.baidubce.com/oauth/2.0/token
+    chat-url: https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant
+    image-url: https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/text2image/sd_xl
