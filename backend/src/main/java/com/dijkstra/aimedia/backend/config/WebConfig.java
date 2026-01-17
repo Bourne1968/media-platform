@@ -30,7 +30,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/user/register",
                         "/error",
                         "/ai/text/stream",
-                        "/ai/text/stream-advanced"
+                        "/ai/text/stream-advanced",
+                        "/style-template/enabled"  // 公开接口：获取启用的模板列表
                 );
     }
     

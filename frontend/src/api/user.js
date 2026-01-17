@@ -21,3 +21,14 @@ export function register(data) {
     data
   })
 }
+
+/**
+ * 获取用户列表（管理员）
+ */
+export function getUserList(params) {
+  return request({
+    url: '/user/list',
+    method: 'get',
+    params
+  })
+}

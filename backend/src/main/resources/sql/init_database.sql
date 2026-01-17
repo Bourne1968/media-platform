@@ -1,4 +1,22 @@
--- 自媒体AI创作辅助平台数据库表结构
+-- 自媒体AI创作辅助平台数据库初始化脚本
+-- 使用方法：
+-- 1. 登录 MySQL: mysql -u root -p
+-- 2. 执行此脚本: source backend/src/main/resources/sql/init_database.sql
+-- 或者在MySQL客户端中直接执行以下SQL语句
+
+-- ============================================
+-- 第一步：创建数据库（如果不存在）
+-- ============================================
+CREATE DATABASE IF NOT EXISTS `media_platform` 
+    DEFAULT CHARACTER SET utf8mb4 
+    DEFAULT COLLATE utf8mb4_unicode_ci;
+
+-- 使用数据库
+USE `media_platform`;
+
+-- ============================================
+-- 第二步：创建表结构
+-- ============================================
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS `user` (
@@ -46,7 +64,7 @@ CREATE TABLE IF NOT EXISTS `style_template` (
     INDEX `idx_sort` (`sort`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='风格模板表';
 
--- 收藏表
+-- 收藏表（可选，暂未实现功能）
 CREATE TABLE IF NOT EXISTS `favorite` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '收藏ID',
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
@@ -60,7 +78,7 @@ CREATE TABLE IF NOT EXISTS `favorite` (
     CONSTRAINT `fk_favorite_record` FOREIGN KEY (`record_id`) REFERENCES `creation_record` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='收藏表';
 
--- 分类表
+-- 分类表（可选，暂未实现功能）
 CREATE TABLE IF NOT EXISTS `category` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '分类ID',
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
@@ -75,7 +93,7 @@ CREATE TABLE IF NOT EXISTS `category` (
     CONSTRAINT `fk_category_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='分类表';
 
--- 记录分类关联表
+-- 记录分类关联表（可选，暂未实现功能）
 CREATE TABLE IF NOT EXISTS `record_category` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '关联ID',
     `record_id` BIGINT NOT NULL COMMENT '创作记录ID',
@@ -88,3 +106,31 @@ CREATE TABLE IF NOT EXISTS `record_category` (
     CONSTRAINT `fk_record_category_record` FOREIGN KEY (`record_id`) REFERENCES `creation_record` (`id`) ON DELETE CASCADE,
     CONSTRAINT `fk_record_category_category` FOREIGN KEY (`category_id`) REFERENCES `category` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='记录分类关联表';
+
+-- ============================================
+-- 第三步：插入初始测试数据
+-- ============================================
+
+-- 插入默认风格模板
+INSERT INTO `style_template` (`name`, `description`, `prompt`, `enabled`, `sort`, `create_time`, `update_time`) VALUES
+('轻松活泼', '适合日常、娱乐类内容', '请使用轻松活泼的语气和风格', 1, 1, NOW(), NOW()),
+('正式严谨', '适合商务、专业类内容', '请使用正式严谨的语言风格', 1, 2, NOW(), NOW()),
+('幽默风趣', '适合搞笑、段子类内容', '请使用幽默风趣的语调', 1, 3, NOW(), NOW()),
+('文艺清新', '适合文艺、情感类内容', '请使用文艺清新的文字风格', 1, 4, NOW(), NOW()),
+('吸引眼球', '适合标题、营销类内容', '请使用吸引眼球、具有冲击力的表达方式', 1, 5, NOW(), NOW())
+ON DUPLICATE KEY UPDATE `name`=`name`;
+
+-- 插入测试管理员账户（可选）
+-- 用户名: admin, 密码: admin123
+INSERT INTO `user` (`username`, `password`, `role`, `create_time`, `update_time`) VALUES
+('admin', 'admin123', 'ADMIN', NOW(), NOW())
+ON DUPLICATE KEY UPDATE `username`=`username`;
+
+-- 显示创建的表
+SHOW TABLES;
+
+-- 显示风格模板数据
+SELECT * FROM `style_template`;
+
+-- 显示用户数据（仅管理员）
+SELECT `id`, `username`, `role`, `create_time` FROM `user`;

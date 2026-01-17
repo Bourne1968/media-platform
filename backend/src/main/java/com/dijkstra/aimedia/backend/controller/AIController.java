@@ -59,7 +59,8 @@ public class AIController {
     public Result<ImageGenerateResponse> generateImage(
             @Valid @RequestBody ImageGenerateRequest request,
             HttpServletRequest httpRequest) {
-        ImageGenerateResponse response = aiService.generateImage(request.getPrompt());
+        String size = request.getSize() != null ? request.getSize() : "1024*1024";
+        ImageGenerateResponse response = aiService.generateImage(request.getPrompt(), size);
         return Result.success("生成成功", response);
     }
     

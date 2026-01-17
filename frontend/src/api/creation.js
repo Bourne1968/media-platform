@@ -53,3 +53,13 @@ export function deleteRecord(id) {
     method: 'delete'
   })
 }
+
+/**
+ * 获取统计数据（管理员）
+ */
+export function getStatistics() {
+  return request({
+    url: '/creation/statistics',
+    method: 'get'
+  })
+}

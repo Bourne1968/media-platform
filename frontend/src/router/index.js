@@ -1,7 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '@/views/Login.vue'
+import Home from '@/views/Home.vue'
 import Workbench from '@/views/Workbench.vue'
 import History from '@/views/History.vue'
+import Calendar from '@/views/Calendar.vue'
+import Admin from '@/views/Admin.vue'
 
 const routes = [
   {
@@ -11,7 +14,13 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/workbench'
+    redirect: '/home'
+  },
+  {
+    path: '/home',
+    name: 'Home',
+    component: Home,
+    meta: { requiresAuth: true }
   },
   {
     path: '/workbench',
@@ -24,6 +33,18 @@ const routes = [
     name: 'History',
     component: History,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/calendar',
+    name: 'Calendar',
+    component: Calendar,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: Admin,
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 
@@ -37,6 +58,23 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   if (to.meta.requiresAuth && !token) {
     next('/login')
+  } else if (to.meta.requiresAdmin) {
+    // 检查是否为管理员
+    const userInfo = localStorage.getItem('userInfo')
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        if (user.role === 'ADMIN') {
+          next()
+        } else {
+          next('/workbench')
+        }
+      } catch (e) {
+        next('/login')
+      }
+    } else {
+      next('/login')
+    }
   } else {
     next()
   }

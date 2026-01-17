@@ -5,7 +5,9 @@ import com.dijkstra.aimedia.backend.common.Result;
 import com.dijkstra.aimedia.backend.constant.UserRole;
 import com.dijkstra.aimedia.backend.dto.CreationRecordRequest;
 import com.dijkstra.aimedia.backend.dto.CreationRecordResponse;
+import com.dijkstra.aimedia.backend.dto.StatisticsResponse;
 import com.dijkstra.aimedia.backend.service.CreationService;
+import com.dijkstra.aimedia.backend.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class CreationController {
     
     private final CreationService creationService;
+    private final UserService userService;
     
     /**
      * 创建创作记录
@@ -74,13 +77,18 @@ public class CreationController {
     public Result<IPage<CreationRecordResponse>> getList(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String type,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") Long current,
             @RequestParam(defaultValue = "10") Long size,
             HttpServletRequest httpRequest) {
+        Long currentUserId = (Long) httpRequest.getAttribute("userId");
         String role = (String) httpRequest.getAttribute("role");
         boolean isAdmin = UserRole.ADMIN.equals(role);
         
-        IPage<CreationRecordResponse> page = creationService.getList(userId, type, current, size, isAdmin);
+        // 对于普通用户，使用当前登录用户的ID；管理员可以使用传入的userId参数
+        Long queryUserId = isAdmin ? userId : currentUserId;
+        
+        IPage<CreationRecordResponse> page = creationService.getList(queryUserId, type, keyword, current, size, isAdmin);
         return Result.success(page);
     }
     
@@ -122,5 +130,24 @@ public class CreationController {
         
         creationService.delete(id, userId, isAdmin);
         return Result.success("删除成功");
+    }
+    
+    /**
+     * 获取统计数据（管理员功能）
+     * 
+     * @param httpRequest HTTP请求
+     * @return 统计数据
+     */
+    @GetMapping("/statistics")
+    public Result<StatisticsResponse> getStatistics(HttpServletRequest httpRequest) {
+        String role = (String) httpRequest.getAttribute("role");
+        if (!UserRole.ADMIN.equals(role)) {
+            return Result.error(403, "权限不足");
+        }
+        StatisticsResponse statistics = creationService.getStatistics();
+        // 添加用户统计
+        statistics.setTotalUsers(userService.getTotalUsersCount());
+        statistics.setTodayNewUsers(userService.getTodayNewUsersCount());
+        return Result.success(statistics);
     }
 }

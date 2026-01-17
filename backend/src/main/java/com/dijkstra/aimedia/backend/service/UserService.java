@@ -1,6 +1,8 @@
 package com.dijkstra.aimedia.backend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dijkstra.aimedia.backend.common.ResultCode;
 import com.dijkstra.aimedia.backend.constant.UserRole;
 import com.dijkstra.aimedia.backend.dto.LoginRequest;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 /**
  * 用户服务类
@@ -113,5 +116,39 @@ public class UserService {
      */
     public User getUserById(Long userId) {
         return userMapper.selectById(userId);
+    }
+    
+    /**
+     * 获取用户列表（管理员功能）
+     * 
+     * @param current 当前页
+     * @param size 每页数量
+     * @return 分页结果
+     */
+    public IPage<User> getUserList(Long current, Long size) {
+        Page<User> page = new Page<>(current, size);
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.orderByDesc(User::getCreateTime);
+        return userMapper.selectPage(page, queryWrapper);
+    }
+    
+    /**
+     * 获取今日新增用户数
+     * 
+     * @return 今日新增用户数
+     */
+    public Long getTodayNewUsersCount() {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.ge(User::getCreateTime, LocalDate.now().atStartOfDay());
+        return userMapper.selectCount(queryWrapper);
+    }
+    
+    /**
+     * 获取总用户数
+     * 
+     * @return 总用户数
+     */
+    public Long getTotalUsersCount() {
+        return userMapper.selectCount(null);
     }
 }

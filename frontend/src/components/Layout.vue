@@ -13,13 +13,25 @@
               router
               class="menu"
             >
+              <el-menu-item index="/home">
+                <el-icon><HomeFilled /></el-icon>
+                <span>首页</span>
+              </el-menu-item>
               <el-menu-item index="/workbench">
                 <el-icon><EditPen /></el-icon>
                 <span>创作工作台</span>
               </el-menu-item>
               <el-menu-item index="/history">
                 <el-icon><Document /></el-icon>
-                <span>历史记录</span>
+                <span>创作库</span>
+              </el-menu-item>
+              <el-menu-item index="/calendar">
+                <el-icon><Calendar /></el-icon>
+                <span>创作日历</span>
+              </el-menu-item>
+              <el-menu-item v-if="isAdmin" index="/admin">
+                <el-icon><Setting /></el-icon>
+                <span>管理后台</span>
               </el-menu-item>
             </el-menu>
           </div>
@@ -54,12 +66,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { EditPen, Document, User, ArrowDown, SwitchButton } from '@element-plus/icons-vue'
+import { HomeFilled, EditPen, Document, Calendar, User, ArrowDown, SwitchButton, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 
 const username = ref('')
+const isAdmin = ref(false)
 
 const activeMenu = computed(() => {
   return route.path
@@ -85,8 +98,10 @@ onMounted(() => {
     try {
       const user = JSON.parse(userInfo)
       username.value = user.username || '用户'
+      isAdmin.value = user.role === 'ADMIN'
     } catch (e) {
       username.value = '用户'
+      isAdmin.value = false
     }
   }
 })

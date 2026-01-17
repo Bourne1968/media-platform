@@ -4,7 +4,6 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
@@ -22,17 +21,22 @@ import java.net.Proxy;
 public class AiConfig {
     
     /**
-     * AI服务商：openai, baidu
+     * AI服务商：aliyun (阿里云DashScope)
      */
     private String provider;
     
     /**
-     * OpenAI配置
+     * 阿里云DashScope配置
+     */
+    private Aliyun aliyun;
+    
+    /**
+     * OpenAI配置（已废弃，保留用于兼容）
      */
     private OpenAI openai;
     
     /**
-     * 百度配置
+     * 百度配置（已废弃，保留用于兼容）
      */
     private Baidu baidu;
     
@@ -40,6 +44,14 @@ public class AiConfig {
      * 代理配置
      */
     private ProxyConfig proxy;
+    
+    @Data
+    public static class Aliyun {
+        private String apiKey;
+        private String model;
+        private String imageModel;
+        private String videoModel;
+    }
     
     @Data
     public static class OpenAI {
