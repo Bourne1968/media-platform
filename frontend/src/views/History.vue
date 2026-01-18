@@ -1,274 +1,242 @@
 <template>
   <div class="history-container">
-    <div class="page-header">
-      <div class="header-content">
-        <div class="header-title">
-          <el-icon class="title-icon"><Document /></el-icon>
-          <h2>历史记录</h2>
-        </div>
-        <p class="header-subtitle">查看和管理您的创作历史</p>
+    <!-- 问候语和时间区域 -->
+    <div class="greeting-section">
+      <div class="greeting-content">
+        <h1 class="greeting-text">{{ greeting }}, {{ username }}</h1>
+        <p class="date-text">{{ currentDate }}</p>
       </div>
     </div>
-    
-    <el-card class="filter-card" shadow="hover">
-      <el-form :inline="true" :model="filterForm" class="filter-form">
-        <el-form-item label="搜索">
-          <el-input
-            v-model="filterForm.keyword"
-            placeholder="搜索提示词或内容"
-            clearable
-            style="width: 300px"
-            @keyup.enter="loadRecords"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item label="类型筛选">
-          <el-select
-            v-model="filterForm.type"
-            placeholder="全部类型"
-            clearable
-            @change="loadRecords"
-            style="width: 150px"
-            class="filter-select"
-          >
-            <el-option label="文本创作" value="TEXT" />
-            <el-option label="图片生成" value="IMAGE" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="视图">
-          <el-radio-group v-model="viewMode" size="default">
-            <el-radio-button label="grid">网格</el-radio-button>
-            <el-radio-button label="timeline">时间轴</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadRecords" :icon="Search">
-            查询
-          </el-button>
-        </el-form-item>
-        <el-form-item>
-          <el-button @click="resetFilter" :icon="Refresh">
-            重置
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-    
-    <div v-loading="loading" class="records-container">
-      <el-empty v-if="!loading && records.length === 0" description="暂无创作记录" />
-      
-      <!-- 时间轴视图 -->
-      <div v-if="viewMode === 'timeline'" class="timeline-container">
-        <el-timeline>
-          <el-timeline-item
-            v-for="record in records"
-            :key="record.id"
-            :timestamp="formatTime(record.createTime)"
-            placement="top"
-            :type="record.type === 'TEXT' ? 'primary' : 'success'"
-            :icon="record.type === 'TEXT' ? Document : Picture"
-          >
-            <el-card class="timeline-card" shadow="hover">
-              <div class="timeline-header">
-                <el-tag :type="record.type === 'TEXT' ? 'primary' : 'success'" effect="dark">
-                  {{ record.type === 'TEXT' ? '文本' : '图片' }}
-                </el-tag>
-                <el-tag v-if="record.styleTemplate" size="small" type="info" style="margin-left: 8px">
-                  {{ record.styleTemplate }}
-                </el-tag>
-              </div>
-              <div class="timeline-content">
-                <div class="prompt-text">
-                  <strong>提示词：</strong>{{ record.prompt }}
-                </div>
-                <el-divider />
-                <div v-if="record.type === 'TEXT'" class="result-text">
-                  {{ record.resultContent }}
-                </div>
-                <el-image
-                  v-else-if="record.imageUrl"
-                  :src="record.imageUrl"
-                  fit="cover"
-                  style="width: 100%; max-height: 300px; border-radius: 8px;"
-                  :preview-src-list="[record.imageUrl]"
-                />
-              </div>
-              <div class="timeline-actions">
-                <el-button size="small" @click="copyText(record.type === 'TEXT' ? record.resultContent : record.imageUrl)">
-                  <el-icon><CopyDocument /></el-icon>
-                  复制
-                </el-button>
-                <el-button size="small" type="danger" @click="handleDelete(record.id)">
-                  <el-icon><Delete /></el-icon>
-                  删除
-                </el-button>
-              </div>
-            </el-card>
-          </el-timeline-item>
-        </el-timeline>
+
+    <!-- 快速开始区域 -->
+    <div class="quick-start-section">
+      <div class="section-header">
+        <h2 class="section-title">快速开始</h2>
       </div>
-      
-      <!-- 网格视图 -->
-      <div v-else class="records-grid">
-        <el-card
-          v-for="record in records"
-          :key="record.id"
-          class="record-card"
-          shadow="hover"
-        >
-          <template #header>
-            <div class="card-header">
-              <div class="header-left">
-                <el-tag :type="record.type === 'TEXT' ? 'primary' : 'success'" effect="dark" size="large">
-                  <el-icon v-if="record.type === 'TEXT'"><Document /></el-icon>
-                  <el-icon v-else><Picture /></el-icon>
-                  <span style="margin-left: 4px">{{ record.type === 'TEXT' ? '文本' : '图片' }}</span>
-                </el-tag>
-                <el-tag v-if="record.styleTemplate" size="small" type="info" style="margin-left: 8px">
-                  {{ record.styleTemplate }}
-                </el-tag>
-              </div>
-              <span class="create-time">
-                <el-icon><Clock /></el-icon>
-                {{ formatTime(record.createTime) }}
-              </span>
-            </div>
-          </template>
-          
-          <div class="record-content">
-            <div class="prompt-section">
-              <div class="label">提示词：</div>
-              <div class="content">{{ record.prompt }}</div>
-            </div>
-            
-            <div v-if="record.styleTemplate" class="style-section">
-              <el-tag size="small" type="info">{{ record.styleTemplate }}</el-tag>
-            </div>
-            
-            <el-divider />
-            
-            <!-- 文本类型 -->
-            <div v-if="record.type === 'TEXT'" class="text-section">
-              <div class="label">生成内容：</div>
-              <div class="text-content">{{ record.resultContent }}</div>
-            </div>
-            
-            <!-- 图片类型 -->
-            <div v-else class="image-section">
-              <div class="label">生成图片：</div>
-              <el-image
-                v-if="record.imageUrl"
-                :src="record.imageUrl"
-                fit="cover"
-                class="record-image"
-                :preview-src-list="[record.imageUrl]"
-                lazy
-              />
-            </div>
+      <div class="quick-cards">
+        <div class="quick-card" @click="$router.push({ path: '/workbench', query: { type: 'TEXT' } })">
+          <div class="card-icon">
+            <el-icon><EditPen /></el-icon>
           </div>
-          
-          <template #footer>
-            <div class="card-footer">
-              <el-button
-                type="primary"
-                size="small"
-                @click="copyText(record.type === 'TEXT' ? record.resultContent : record.imageUrl)"
-                :icon="CopyDocument"
-              >
-                复制{{ record.type === 'TEXT' ? '文案' : '链接' }}
-              </el-button>
-              <el-button
-                type="danger"
-                size="small"
-                @click="handleDelete(record.id)"
-                :icon="Delete"
-              >
-                删除
-              </el-button>
-            </div>
-          </template>
-        </el-card>
+          <div class="card-label">写文案</div>
+        </div>
+        <div class="quick-card" @click="$router.push({ path: '/workbench', query: { type: 'IMAGE' } })">
+          <div class="card-icon">
+            <el-icon><Picture /></el-icon>
+          </div>
+          <div class="card-label">做封面</div>
+        </div>
+        <div class="quick-card" @click="$router.push('/home')">
+          <div class="card-icon">
+            <el-icon><MagicStick /></el-icon>
+          </div>
+          <div class="card-label">找灵感</div>
+        </div>
+        <div class="quick-card" @click="$router.push('/calendar')">
+          <div class="card-icon">
+            <el-icon><TrendCharts /></el-icon>
+          </div>
+          <div class="card-label">看数据</div>
+        </div>
       </div>
-      
-      <!-- 分页 -->
-      <div v-if="total > 0" class="pagination-container">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="loadRecords"
-          @current-change="loadRecords"
-        />
+    </div>
+
+    <!-- 分割线 -->
+    <div class="divider"></div>
+
+    <!-- 最近项目区域 -->
+    <div class="recent-projects-section">
+      <div class="section-header">
+        <h2 class="section-title">最近项目</h2>
+        <el-button text @click="viewAllProjects">
+          查看全部
+          <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+      <div class="projects-list">
+        <div
+          v-for="record in recentRecords"
+          :key="record.id"
+          class="project-item"
+          @click="viewProject(record)"
+        >
+          <div class="project-icon">
+            <el-icon v-if="record.type === 'TEXT'"><Document /></el-icon>
+            <el-icon v-else><Picture /></el-icon>
+          </div>
+          <div class="project-content">
+            <div class="project-title">{{ getProjectTitle(record) }}</div>
+            <div class="project-time">{{ formatRelativeTime(record.createTime) }}</div>
+          </div>
+          <div class="project-actions">
+            <el-button text size="small" @click.stop="copyText(record.type === 'TEXT' ? record.resultContent : record.imageUrl)">
+              <el-icon><CopyDocument /></el-icon>
+            </el-button>
+            <el-button text size="small" type="danger" @click.stop="handleDelete(record.id)">
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </div>
+        </div>
+        <div v-if="recentRecords.length === 0" class="empty-projects">
+          <el-empty description="暂无创作记录" :image-size="80" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 分割线 -->
+    <div class="divider"></div>
+
+    <!-- 本周统计区域 -->
+    <div class="stats-section">
+      <div class="section-header">
+        <h2 class="section-title">本周统计</h2>
+      </div>
+      <div class="stats-cards">
+        <div class="stat-card">
+          <div class="stat-label">创作次数</div>
+          <div class="stat-value">{{ weekStats.total }}</div>
+          <div class="stat-change" :class="{ 'increase': weekStats.totalChange > 0, 'decrease': weekStats.totalChange < 0 }">
+            {{ weekStats.totalChange > 0 ? '↑' : weekStats.totalChange < 0 ? '↓' : '' }}{{ Math.abs(weekStats.totalChange) }}%
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">完成项目</div>
+          <div class="stat-value">{{ weekStats.completed }}</div>
+          <div class="stat-change" :class="{ 'increase': weekStats.completedChange > 0, 'decrease': weekStats.completedChange < 0 }">
+            {{ weekStats.completedChange > 0 ? '↑' : weekStats.completedChange < 0 ? '↓' : '' }}{{ Math.abs(weekStats.completedChange) }}%
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, CopyDocument, Delete, Document, Picture, Clock } from '@element-plus/icons-vue'
+import { EditPen, Picture, MagicStick, TrendCharts, Document, CopyDocument, Delete, ArrowRight } from '@element-plus/icons-vue'
 import { getRecordList, deleteRecord } from '@/api/creation'
 
-const loading = ref(false)
+const router = useRouter()
+
+const username = ref('用户')
+const greeting = ref('早上好')
+const currentDate = ref('')
+
 const records = ref([])
-const total = ref(0)
-const currentPage = ref(1)
-const pageSize = ref(10)
+const loading = ref(false)
 
-const viewMode = ref('grid') // grid 或 timeline
-
-const filterForm = reactive({
-  type: '',
-  keyword: ''
+// 最近项目（显示前6条）
+const recentRecords = computed(() => {
+  return records.value.slice(0, 6)
 })
+
+// 本周统计
+const weekStats = computed(() => {
+  const now = new Date()
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
+  weekStart.setHours(0, 0, 0, 0)
+  
+  const thisWeekRecords = records.value.filter(record => {
+    const recordDate = new Date(record.createTime)
+    return recordDate >= weekStart
+  })
+
+  const lastWeekEnd = new Date(weekStart)
+  lastWeekEnd.setDate(lastWeekEnd.getDate() - 1)
+  const lastWeekStart = new Date(lastWeekEnd)
+  lastWeekStart.setDate(lastWeekStart.getDate() - 6)
+
+  const lastWeekRecords = records.value.filter(record => {
+    const recordDate = new Date(record.createTime)
+    return recordDate >= lastWeekStart && recordDate <= lastWeekEnd
+  })
+
+  const total = thisWeekRecords.length
+  const lastWeekTotal = lastWeekRecords.length
+  const totalChange = lastWeekTotal > 0 ? Math.round(((total - lastWeekTotal) / lastWeekTotal) * 100) : 0
+
+  const completed = total
+  const lastWeekCompleted = lastWeekTotal
+  const completedChange = lastWeekCompleted > 0 ? Math.round(((completed - lastWeekCompleted) / lastWeekCompleted) * 100) : 0
+
+  return {
+    total,
+    completed,
+    totalChange,
+    completedChange
+  }
+})
+
+// 获取问候语
+const getGreeting = () => {
+  const hour = new Date().getHours()
+  if (hour < 6) return '凌晨好'
+  if (hour < 9) return '早上好'
+  if (hour < 12) return '上午好'
+  if (hour < 14) return '中午好'
+  if (hour < 18) return '下午好'
+  if (hour < 22) return '晚上好'
+  return '深夜好'
+}
+
+// 获取当前日期
+const getCurrentDate = () => {
+  const date = new Date()
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const weekday = weekdays[date.getDay()]
+  return `今天是 ${year}年${month}月${day}日 ${weekday}`
+}
+
+// 获取项目标题
+const getProjectTitle = (record) => {
+  if (record.type === 'TEXT') {
+    const content = record.resultContent || ''
+    return content.split('\n')[0] || record.prompt || '文本创作'
+  } else {
+    return record.prompt || '图片生成'
+  }
+}
+
+// 格式化相对时间
+const formatRelativeTime = (timeStr) => {
+  if (!timeStr) return ''
+  const now = new Date()
+  const time = new Date(timeStr)
+  const diff = now - time
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 7) return `${days}天前`
+  
+  const year = time.getFullYear()
+  const month = time.getMonth() + 1
+  const day = time.getDate()
+  return `${year}-${month}-${day}`
+}
 
 const loadRecords = async () => {
   loading.value = true
   try {
-    const params = {
-      current: currentPage.value,
-      size: pageSize.value
-    }
-    if (filterForm.type) {
-      params.type = filterForm.type
-    }
-    if (filterForm.keyword) {
-      params.keyword = filterForm.keyword
-    }
-    
-    const res = await getRecordList(params)
+    const res = await getRecordList({ current: 1, size: 1000 })
     if (res.code === 200) {
-      records.value = res.data.records || []
-      total.value = res.data.total || 0
-      console.log('加载记录成功：', {
-        records: records.value.length,
-        total: total.value,
-        current: currentPage.value,
-        size: pageSize.value
+      records.value = (res.data.records || []).sort((a, b) => {
+        return new Date(b.createTime) - new Date(a.createTime)
       })
-    } else {
-      ElMessage.error(res.message || '加载记录失败')
-      console.error('加载记录失败：', res)
     }
   } catch (error) {
-    console.error('加载记录异常：', error)
-    ElMessage.error('加载记录失败，请检查网络连接')
+    console.error('加载记录失败：', error)
   } finally {
     loading.value = false
   }
-}
-
-const resetFilter = () => {
-  filterForm.type = ''
-  filterForm.keyword = ''
-  currentPage.value = 1
-  loadRecords()
 }
 
 const copyText = (text) => {
@@ -299,309 +267,504 @@ const handleDelete = async (id) => {
   }
 }
 
-const formatTime = (timeStr) => {
-  if (!timeStr) return ''
-  const date = new Date(timeStr)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+const viewProject = (record) => {
+  // 可以跳转到详情页或显示详情弹窗
+  ElMessage.info('查看项目详情功能开发中...')
+}
+
+const viewAllProjects = () => {
+  // 这里可以跳转到完整的项目列表页面，或者展开显示更多
+  ElMessage.info('查看更多项目功能开发中...')
 }
 
 onMounted(() => {
+  // 获取用户信息
+  const userInfo = localStorage.getItem('userInfo')
+  if (userInfo) {
+    try {
+      const user = JSON.parse(userInfo)
+      username.value = user.username || '用户'
+    } catch (e) {
+      username.value = '用户'
+    }
+  }
+
+  // 设置问候语和时间
+  greeting.value = getGreeting()
+  currentDate.value = getCurrentDate()
+
+  // 加载记录
   loadRecords()
 })
 </script>
 
 <style scoped>
 .history-container {
-  padding: 24px;
+  padding: 32px 24px;
   max-width: 1400px;
   margin: 0 auto;
-  background: linear-gradient(to bottom, #f8f9ff 0%, #ffffff 100%);
   min-height: calc(100vh - 60px);
 }
 
-.page-header {
-  margin-bottom: 24px;
+/* 问候语区域 */
+.greeting-section {
+  margin-bottom: 32px;
+}
+
+.greeting-content {
   padding: 24px 0;
 }
 
-.header-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.title-icon {
-  color: #667eea;
-  font-size: 28px;
-}
-
-.header-title h2 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
+.greeting-text {
+  font-size: 32px;
+  font-weight: 600;
   color: #303133;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
 }
 
-.header-subtitle {
-  margin: 0;
+.date-text {
+  font-size: 16px;
   color: #909399;
-  font-size: 14px;
-  margin-left: 40px;
-}
-
-.filter-card {
-  margin-bottom: 24px;
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-}
-
-.filter-form {
   margin: 0;
+  font-weight: 400;
 }
 
-.filter-select :deep(.el-input__wrapper) {
-  border-radius: 8px;
+/* 快速开始区域 */
+.quick-start-section {
+  margin-bottom: 30px;
 }
 
-.records-container {
-  min-height: 400px;
-}
-
-.records-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.record-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  overflow: hidden;
-}
-
-.record-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.card-header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
+  margin-bottom: 20px;
 }
 
-.header-left {
+.section-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.create-time {
-  color: #909399;
+.quick-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.quick-card {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  padding: 28px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.quick-card:hover::before {
+  opacity: 1;
+}
+
+.quick-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+  transform: translateY(-4px);
+}
+
+.quick-card:nth-child(1) .card-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.quick-card:nth-child(2) .card-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.quick-card:nth-child(3) .card-icon {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.quick-card:nth-child(4) .card-icon {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.card-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 28px;
+  border-radius: 12px;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s ease;
+}
+
+.quick-card:hover .card-icon {
+  transform: scale(1.1);
+}
+
+.card-label {
+  font-size: 16px;
+  color: #303133;
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
+}
+
+/* 分割线 */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #e4e7ed 20%, #e4e7ed 80%, transparent 100%);
+  margin: 32px 0;
+}
+
+/* 最近项目区域 */
+.recent-projects-section {
+  margin-bottom: 30px;
+}
+
+.projects-list {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease;
+}
+
+.projects-list:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.project-item {
+  display: flex;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid #f5f7fa;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.project-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.project-item:last-child {
+  border-bottom: none;
+}
+
+.project-item:hover {
+  background: linear-gradient(90deg, #f8f9ff 0%, rgba(248, 249, 255, 0.5) 100%);
+  padding-left: 28px;
+}
+
+.project-item:hover::after {
+  opacity: 1;
+}
+
+.project-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e0eaff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #667eea;
+  font-size: 22px;
+  margin-right: 16px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.project-item:hover .project-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  transform: scale(1.05);
+}
+
+.project-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-title {
+  font-size: 16px;
+  color: #303133;
+  font-weight: 500;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+}
+
+.project-item:hover .project-title {
+  color: #667eea;
+}
+
+.project-time {
   font-size: 13px;
+  color: #909399;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.record-content {
-  min-height: 200px;
-}
-
-.prompt-section {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #f8f9ff;
-  border-radius: 8px;
-  border-left: 3px solid #667eea;
-}
-
-.label {
-  font-weight: 600;
-  color: #606266;
-  margin-bottom: 8px;
-  font-size: 14px;
+.project-actions {
   display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.content {
-  color: #303133;
-  line-height: 1.8;
-  word-break: break-word;
-  font-size: 14px;
-}
-
-.style-section {
-  margin-bottom: 16px;
-}
-
-.text-content {
-  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid #e4e7ed;
-  line-height: 2;
-  white-space: pre-wrap;
-  word-break: break-word;
-  min-height: 120px;
-  max-height: 350px;
-  overflow-y: auto;
-  font-size: 14px;
-  color: #303133;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease;
-}
-
-.text-content:hover {
-  border-color: #667eea;
-}
-
-.image-section {
-  text-align: center;
-  padding: 12px;
-}
-
-.record-image {
-  width: 100%;
-  max-height: 350px;
-  border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.record-image:hover {
-  transform: scale(1.02);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
-}
-
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
   gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #f0f0f0;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 32px;
-  padding: 20px;
-  background: #fff;
+.project-item:hover .project-actions {
+  opacity: 1;
+}
+
+.empty-projects {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+/* 本周统计区域 */
+.stats-section {
+  margin-bottom: 30px;
+}
+
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #e4e7ed;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 28px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-:deep(.el-card__header) {
-  border-bottom: 1px solid #f0f0f0;
-  padding: 16px 20px;
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
 }
 
-:deep(.el-card__body) {
-  padding: 20px;
+.stat-card:hover::before {
+  transform: scaleX(1);
 }
 
-:deep(.el-card__footer) {
-  padding: 16px 20px;
-  background: #fafafa;
+.stat-card:hover {
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+  transform: translateY(-4px);
+  border-color: #c5d7ff;
 }
 
-.timeline-container {
-  padding: 20px 0;
-}
-
-.timeline-card {
-  margin-left: 20px;
-  border-radius: 12px;
-  transition: all 0.3s;
-}
-
-.timeline-card:hover {
-  transform: translateX(5px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.timeline-header {
-  margin-bottom: 12px;
-}
-
-.timeline-content {
-  margin: 16px 0;
-}
-
-.prompt-text {
-  color: #606266;
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
-.result-text {
-  background: #f8f9ff;
-  padding: 16px;
-  border-radius: 8px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.timeline-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-:deep(.el-timeline-item__timestamp) {
-  color: #909399;
+.stat-label {
   font-size: 14px;
-  font-weight: 500;
+  color: #909399;
+  margin-bottom: 16px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.stat-change {
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(103, 194, 58, 0.1);
+}
+
+.stat-change.increase {
+  color: #67c23a;
+  background: rgba(103, 194, 58, 0.1);
+}
+
+.stat-change.decrease {
+  color: #f56c6c;
+  background: rgba(245, 108, 108, 0.1);
+}
+
+@media (max-width: 1024px) {
+  .quick-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
 }
 
 @media (max-width: 768px) {
   .history-container {
-    padding: 16px;
+    padding: 20px 16px;
   }
-  
-  .records-grid {
+
+  .greeting-section {
+    margin-bottom: 24px;
+  }
+
+  .greeting-text {
+    font-size: 26px;
+  }
+
+  .date-text {
+    font-size: 14px;
+  }
+
+  .section-header {
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  .quick-start-section,
+  .recent-projects-section,
+  .stats-section {
+    margin-bottom: 24px;
+  }
+
+  .quick-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .quick-card {
+    padding: 20px 16px;
+  }
+
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .card-label {
+    font-size: 14px;
+  }
+
+  .stats-cards {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
-  .header-title h2 {
+
+  .stat-card {
+    padding: 24px 20px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+  }
+
+  .project-item {
+    padding: 16px 20px;
+  }
+
+  .project-item:hover {
+    padding-left: 24px;
+  }
+
+  .project-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    margin-right: 12px;
+  }
+
+  .project-title {
+    font-size: 15px;
+  }
+
+  .project-time {
+    font-size: 12px;
+  }
+
+  .divider {
+    margin: 24px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-container {
+    padding: 16px 12px;
+  }
+
+  .greeting-text {
     font-size: 22px;
   }
-  
-  .header-subtitle {
-    margin-left: 0;
+
+  .quick-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
-  
-  .timeline-card {
-    margin-left: 0;
+
+  .section-title {
+    font-size: 18px;
+  }
+
+  .stat-value {
+    font-size: 28px;
   }
 }
 </style>

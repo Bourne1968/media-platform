@@ -36,6 +36,14 @@
             </el-menu>
           </div>
           <div class="user-info">
+            <el-button 
+              text 
+              class="achievement-btn"
+              @click="showAchievement = true"
+              title="成就系统"
+            >
+              <el-icon><Trophy /></el-icon>
+            </el-button>
             <el-dropdown @command="handleCommand">
               <span class="user-name">
                 <el-icon><User /></el-icon>
@@ -59,6 +67,15 @@
         <router-view />
       </el-main>
     </el-container>
+    
+    <!-- 快捷工具栏 -->
+    <QuickToolbar v-if="isLoggedIn" />
+    
+    <!-- 成就系统 -->
+    <AchievementSystem v-if="isLoggedIn" v-model="showAchievement" />
+    
+    <!-- 新手引导 -->
+    <Guide v-if="isLoggedIn" />
   </div>
 </template>
 
@@ -66,13 +83,18 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { HomeFilled, EditPen, Document, Calendar, User, ArrowDown, SwitchButton, Setting } from '@element-plus/icons-vue'
+import { HomeFilled, EditPen, Document, Calendar, User, ArrowDown, SwitchButton, Setting, Trophy } from '@element-plus/icons-vue'
+import QuickToolbar from './QuickToolbar.vue'
+import AchievementSystem from './AchievementSystem.vue'
+import Guide from './Guide.vue'
 
 const router = useRouter()
 const route = useRoute()
 
 const username = ref('')
 const isAdmin = ref(false)
+const showAchievement = ref(false)
+const isLoggedIn = ref(false)
 
 const activeMenu = computed(() => {
   return route.path
@@ -93,6 +115,9 @@ const handleCommand = (command) => {
 }
 
 onMounted(() => {
+  const token = localStorage.getItem('token')
+  isLoggedIn.value = !!token
+  
   const userInfo = localStorage.getItem('userInfo')
   if (userInfo) {
     try {
@@ -167,6 +192,20 @@ onMounted(() => {
 
 .user-info {
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.achievement-btn {
+  color: #fff !important;
+  font-size: 20px;
+  padding: 8px;
+}
+
+.achievement-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
 }
 
 .user-name {
@@ -185,6 +224,7 @@ onMounted(() => {
 .main-content {
   min-height: calc(100vh - 60px);
   padding: 0;
+  background: #f0f2f5;
 }
 
 @media (max-width: 768px) {

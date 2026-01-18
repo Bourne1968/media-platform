@@ -349,9 +349,10 @@ onMounted(() => {
 
 <style scoped>
 .home-container {
-  padding: 20px;
+  padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  min-height: calc(100vh - 60px);
 }
 
 .welcome-section {
@@ -384,6 +385,19 @@ onMounted(() => {
   transition: all 0.3s;
   text-align: center;
   padding: 20px;
+  border-radius: 12px;
+  border: none;
+}
+
+:deep(.el-card) {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+:deep(.el-card:hover) {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .quick-card:hover {
