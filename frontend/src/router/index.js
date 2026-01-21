@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '@/views/Login.vue'
 import Home from '@/views/Home.vue'
 import Workbench from '@/views/Workbench.vue'
+import CoverDesign from '@/views/CoverDesign.vue'
 import History from '@/views/History.vue'
 import Calendar from '@/views/Calendar.vue'
 import Admin from '@/views/Admin.vue'
@@ -26,6 +27,12 @@ const routes = [
     path: '/workbench',
     name: 'Workbench',
     component: Workbench,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/cover-design',
+    name: 'CoverDesign',
+    component: CoverDesign,
     meta: { requiresAuth: true }
   },
   {

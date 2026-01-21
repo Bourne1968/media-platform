@@ -1,75 +1,10 @@
 <template>
   <div class="layout-container">
     <el-container>
-      <el-header class="header">
-        <div class="header-content">
-          <div class="logo">
-            <h2>AI创作平台</h2>
-          </div>
-          <div class="nav-menu">
-            <el-menu
-              :default-active="activeMenu"
-              mode="horizontal"
-              router
-              class="menu"
-            >
-              <el-menu-item index="/home">
-                <el-icon><HomeFilled /></el-icon>
-                <span>首页</span>
-              </el-menu-item>
-              <el-menu-item index="/workbench">
-                <el-icon><EditPen /></el-icon>
-                <span>创作工作台</span>
-              </el-menu-item>
-              <el-menu-item index="/history">
-                <el-icon><Document /></el-icon>
-                <span>创作库</span>
-              </el-menu-item>
-              <el-menu-item index="/calendar">
-                <el-icon><Calendar /></el-icon>
-                <span>创作日历</span>
-              </el-menu-item>
-              <el-menu-item v-if="isAdmin" index="/admin">
-                <el-icon><Setting /></el-icon>
-                <span>管理后台</span>
-              </el-menu-item>
-            </el-menu>
-          </div>
-          <div class="user-info">
-            <el-button 
-              text 
-              class="achievement-btn"
-              @click="showAchievement = true"
-              title="成就系统"
-            >
-              <el-icon><Trophy /></el-icon>
-            </el-button>
-            <el-dropdown @command="handleCommand">
-              <span class="user-name">
-                <el-icon><User /></el-icon>
-                {{ username }}
-                <el-icon><ArrowDown /></el-icon>
-              </span>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="logout">
-                    <el-icon><SwitchButton /></el-icon>
-                    退出登录
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
-        </div>
-      </el-header>
-      
-      <el-main class="main-content">
+      <el-main class="main-content" style="padding: 0;">
         <router-view />
       </el-main>
     </el-container>
-    
-    <!-- 快捷工具栏 -->
-    <QuickToolbar v-if="isLoggedIn" />
     
     <!-- 成就系统 -->
     <AchievementSystem v-if="isLoggedIn" v-model="showAchievement" />
@@ -84,7 +19,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { HomeFilled, EditPen, Document, Calendar, User, ArrowDown, SwitchButton, Setting, Trophy } from '@element-plus/icons-vue'
-import QuickToolbar from './QuickToolbar.vue'
 import AchievementSystem from './AchievementSystem.vue'
 import Guide from './Guide.vue'
 
