@@ -1,6 +1,10 @@
 spring:
   application:
     name: media-platform-backend
+  # 静态资源配置 - 禁用默认静态资源处理，避免API路径被误判为静态资源
+  web:
+    resources:
+      add-mappings: false
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/media_platform?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true

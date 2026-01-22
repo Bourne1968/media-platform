@@ -294,7 +294,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Camera, Monitor } from '@element-plus/icons-vue'
-import { updateProfile, updateAvatar, changePassword as changePasswordAPI, updatePreferences, getPreferences } from '@/api/user'
+import { getProfile, updateProfile, updateAvatar, changePassword as changePasswordAPI, updatePreferences, getPreferences, deleteAccount as deleteAccountAPI } from '@/api/user'
 
 const activeTab = ref('profile')
 
@@ -390,16 +390,43 @@ const saveProfile = async () => {
     try {
       // 调用后端API更新用户信息
       const res = await updateProfile({
-        username: profileForm.username
+        username: profileForm.username,
+        nickname: profileForm.nickname,
+        bio: profileForm.bio,
+        gender: profileForm.gender
       })
       
-      if (res.code === 200) {
+      if (res.code === 200 && res.data) {
         // 更新localStorage中的用户信息
         const userInfo = localStorage.getItem('userInfo')
         if (userInfo) {
           try {
             const user = JSON.parse(userInfo)
-            user.username = profileForm.username
+            user.username = res.data.username || profileForm.username
+            user.email = res.data.email || profileForm.email
+            user.avatar = res.data.avatar || profileForm.avatar
+            
+            // 从preferences中提取个人信息
+            if (res.data.preferences) {
+              try {
+                const prefs = typeof res.data.preferences === 'string' 
+                  ? JSON.parse(res.data.preferences) 
+                  : res.data.preferences
+                user.nickname = prefs.nickname || profileForm.nickname
+                user.bio = prefs.bio || profileForm.bio
+                user.gender = prefs.gender || profileForm.gender
+              } catch (e) {
+                // 如果解析失败，使用表单数据
+                user.nickname = profileForm.nickname
+                user.bio = profileForm.bio
+                user.gender = profileForm.gender
+              }
+            } else {
+              user.nickname = profileForm.nickname
+              user.bio = profileForm.bio
+              user.gender = profileForm.gender
+            }
+            
             localStorage.setItem('userInfo', JSON.stringify(user))
             // 触发自定义事件，通知Layout组件更新
             window.dispatchEvent(new Event('userInfoUpdated'))
@@ -703,14 +730,47 @@ const clearAllData = async () => {
 
     clearingData.value = true
 
-    // 这里应该调用清空数据的API
-    // const res = await clearUserData()
+    try {
+      // 获取所有创作记录
+      const { getRecordList, deleteRecord } = await import('@/api/creation')
+      const res = await getRecordList({ current: 1, size: 10000 })
+      
+      if (res.code === 200 && res.data && res.data.records) {
+        const records = res.data.records
+        if (records.length === 0) {
+          ElMessage.info('没有需要清空的记录')
+          clearingData.value = false
+          return
+        }
 
-    // 模拟清空成功
-    setTimeout(() => {
-      ElMessage.success('所有创作记录已清空')
+        // 批量删除所有记录
+        let successCount = 0
+        let failCount = 0
+        
+        for (const record of records) {
+          try {
+            await deleteRecord(record.id)
+            successCount++
+          } catch (error) {
+            console.error(`删除记录 ${record.id} 失败:`, error)
+            failCount++
+          }
+        }
+
+        if (failCount === 0) {
+          ElMessage.success(`成功清空 ${successCount} 条创作记录`)
+        } else {
+          ElMessage.warning(`清空完成：成功 ${successCount} 条，失败 ${failCount} 条`)
+        }
+      } else {
+        ElMessage.error('获取创作记录失败')
+      }
+    } catch (error) {
+      console.error('清空数据失败:', error)
+      ElMessage.error('清空数据失败，请稍后重试')
+    } finally {
       clearingData.value = false
-    }, 2000)
+    }
 
   } catch (error) {
     if (error !== 'cancel') {
@@ -737,24 +797,26 @@ const deleteAccount = async () => {
     deletingAccount.value = true
 
     try {
-      // 这里应该调用删除账户的API
-      // const res = await deleteUserAccount()
+      const res = await deleteAccountAPI()
       
-      // 模拟删除成功
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // 清除本地存储并跳转到登录页
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      localStorage.removeItem('userPreferences')
-      
-      ElMessage.success('账户删除成功')
-      
-      // 跳转到登录页
-      window.location.href = '/login'
+      if (res.code === 200) {
+        // 清除本地存储
+        localStorage.removeItem('token')
+        localStorage.removeItem('userInfo')
+        localStorage.removeItem('userPreferences')
+        
+        ElMessage.success('账户删除成功')
+        
+        // 跳转到登录页
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 1000)
+      } else {
+        ElMessage.error(res.message || '删除账户失败')
+      }
     } catch (apiError) {
       console.error('删除账户失败:', apiError)
-      ElMessage.error('删除账户失败，请稍后重试')
+      ElMessage.error(apiError.response?.data?.message || '删除账户失败，请稍后重试')
     } finally {
       deletingAccount.value = false
     }
@@ -770,19 +832,59 @@ const deleteAccount = async () => {
 
 // 初始化数据
 onMounted(async () => {
-  // 从localStorage加载用户信息
-  const userInfo = localStorage.getItem('userInfo')
-  if (userInfo) {
-    try {
-      const user = JSON.parse(userInfo)
+  // 优先从数据库获取用户信息（静默失败，不显示错误）
+  try {
+    const res = await getProfile()
+    if (res && res.code === 200 && res.data) {
+      const user = res.data
       profileForm.username = user.username || ''
-      profileForm.email = user.email || '' // 邮箱从登录信息中获取，不可编辑
-      profileForm.nickname = user.nickname || ''
-      profileForm.bio = user.bio || ''
-      profileForm.gender = user.gender || 'private'
+      profileForm.email = user.email || ''
       profileForm.avatar = user.avatar || ''
-    } catch (e) {
-      console.error('加载用户信息失败:', e)
+      
+      // 从preferences中提取个人信息
+      if (user.preferences) {
+        try {
+          const prefs = typeof user.preferences === 'string' 
+            ? JSON.parse(user.preferences) 
+            : user.preferences
+          profileForm.nickname = prefs.nickname || ''
+          profileForm.bio = prefs.bio || ''
+          profileForm.gender = prefs.gender || 'private'
+        } catch (e) {
+          console.warn('解析preferences失败:', e)
+        }
+      }
+      
+      // 更新localStorage
+      const userInfo = {
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        nickname: profileForm.nickname,
+        bio: profileForm.bio,
+        gender: profileForm.gender
+      }
+      localStorage.setItem('userInfo', JSON.stringify(userInfo))
+    } else {
+      // 如果从数据库获取失败，从localStorage加载
+      throw new Error('从数据库获取失败')
+    }
+  } catch (error) {
+    console.warn('从数据库加载用户信息失败，使用localStorage:', error)
+    // 从localStorage加载用户信息（降级方案）
+    const userInfo = localStorage.getItem('userInfo')
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        profileForm.username = user.username || ''
+        profileForm.email = user.email || ''
+        profileForm.nickname = user.nickname || ''
+        profileForm.bio = user.bio || ''
+        profileForm.gender = user.gender || 'private'
+        profileForm.avatar = user.avatar || ''
+      } catch (e) {
+        console.error('加载用户信息失败:', e)
+      }
     }
   }
 
@@ -819,36 +921,60 @@ onMounted(async () => {
     loadPreferencesFromLocalStorage()
   }
   
-  // 应用深色模式（如果已设置）
+  // 应用深色模式（优先使用localStorage中的值，因为它反映当前实际应用的主题状态）
+  // 这样可以避免进入设置页面时意外切换主题
   const darkMode = localStorage.getItem('darkMode')
-  if (darkMode === 'true' || preferences.darkMode) {
-    preferences.darkMode = true
-    document.documentElement.classList.add('dark')
-  } else if (darkMode === 'false' || preferences.darkMode === false) {
-    preferences.darkMode = false
-    document.documentElement.classList.remove('dark')
+  if (darkMode !== null) {
+    // 如果localStorage中有值，优先使用它（因为它是当前实际应用的主题）
+    // 用localStorage的值覆盖从后端加载的preferences.darkMode，确保一致性
+    preferences.darkMode = darkMode === 'true'
+    // 应用主题（如果已经是正确的状态，这个操作是幂等的，不会造成闪烁）
+    if (preferences.darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  } else {
+    // 如果localStorage中没有值，才使用从后端加载的preferences.darkMode
+    // 并同步到localStorage
+    if (preferences.darkMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('darkMode', 'true')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('darkMode', 'false')
+    }
   }
 })
 </script>
 
 <style scoped>
 .settings-container {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 32px 24px;
   min-height: calc(100vh - 60px);
+  background: var(--bg-color);
+  transition: background-color 0.3s ease;
 }
 
 .settings-header {
-  margin-bottom: 32px;
+  margin-bottom: 40px;
   text-align: center;
+  padding-bottom: 24px;
+  border-bottom: 2px solid var(--border-light);
+  transition: border-color 0.3s ease;
 }
 
 .page-title {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 700;
-  color: #303133;
-  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.5px;
 }
 
 .page-subtitle {
@@ -860,16 +986,23 @@ onMounted(async () => {
 
 .settings-content {
   background: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-light);
+}
+
+.dark .settings-content {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .settings-tabs :deep(.el-tabs__header) {
   margin: 0;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 24px;
+  transition: all 0.3s ease;
 }
 
 .settings-tabs :deep(.el-tabs__nav-wrap::after) {
@@ -878,13 +1011,21 @@ onMounted(async () => {
 
 .settings-tabs :deep(.el-tabs__item) {
   font-weight: 500;
-  padding: 16px 24px;
-  border-bottom: 2px solid transparent;
+  padding: 20px 28px;
+  border-bottom: 3px solid transparent;
+  color: var(--text-regular);
+  transition: all 0.3s ease;
+  font-size: 15px;
+}
+
+.settings-tabs :deep(.el-tabs__item:hover) {
+  color: #667eea;
 }
 
 .settings-tabs :deep(.el-tabs__item.is-active) {
   color: #667eea;
   border-bottom-color: #667eea;
+  font-weight: 600;
 }
 
 .settings-tabs :deep(.el-tabs__content) {
@@ -892,8 +1033,9 @@ onMounted(async () => {
 }
 
 .settings-section {
-  padding: 32px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 40px;
+  border-bottom: 1px solid var(--border-light);
+  transition: all 0.3s ease;
 }
 
 .settings-section:last-child {
@@ -901,18 +1043,37 @@ onMounted(async () => {
 }
 
 .section-header {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+  transition: border-color 0.3s ease;
 }
 
 .section-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.3s ease;
+}
+
+.section-title::before {
+  content: '';
+  width: 4px;
+  height: 22px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 2px;
 }
 
 .section-title.text-danger {
   color: #f56c6c;
+}
+
+.section-title.text-danger::before {
+  background: #f56c6c;
 }
 
 .section-desc {
@@ -920,28 +1081,105 @@ onMounted(async () => {
   font-size: 14px;
   margin: 0;
   transition: color 0.3s ease;
+  line-height: 1.6;
+}
+
+/* 表单样式优化 */
+.settings-section :deep(.el-form) {
+  max-width: 600px;
+}
+
+.settings-section :deep(.el-form-item) {
+  margin-bottom: 24px;
+}
+
+.settings-section :deep(.el-form-item__label) {
+  color: var(--text-primary);
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.settings-section :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.settings-section :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #667eea inset;
+}
+
+.settings-section :deep(.el-textarea__inner) {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.settings-section :deep(.el-textarea__inner:hover) {
+  border-color: #667eea;
+}
+
+.settings-section :deep(.el-radio-group) {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.settings-section :deep(.el-radio) {
+  margin-right: 0;
+}
+
+.settings-section :deep(.el-radio__input.is-checked .el-radio__inner) {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.settings-section :deep(.el-button--primary) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  padding: 12px 32px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.settings-section :deep(.el-button--primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
 /* 头像上传 */
 .avatar-upload {
   display: flex;
-  align-items: center;
-  gap: 20px;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 20px;
+  background: var(--bg-color);
+  border-radius: 12px;
+  border: 1px dashed var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.avatar-upload:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.02);
 }
 
 .avatar-preview {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid #e4e7ed;
+  border: 3px solid var(--border-color);
   cursor: pointer;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .avatar-preview:hover {
   border-color: #667eea;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
 }
 
 .avatar-img {
@@ -956,7 +1194,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(102, 126, 234, 0.8);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -964,6 +1202,16 @@ onMounted(async () => {
   color: white;
   opacity: 0;
   transition: opacity 0.3s ease;
+  gap: 4px;
+}
+
+.avatar-overlay .el-icon {
+  font-size: 24px;
+}
+
+.avatar-overlay span {
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .avatar-preview:hover .avatar-overlay {
@@ -971,21 +1219,24 @@ onMounted(async () => {
 }
 
 .upload-tips {
+  flex: 1;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   transition: color 0.3s ease;
+  line-height: 1.6;
 }
 
 .upload-tips p {
-  margin: 4px 0;
+  margin: 0;
 }
 
 .form-item-tip {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: 6px;
   line-height: 1.5;
   transition: color 0.3s ease;
+  padding-left: 4px;
 }
 
 /* 偏好设置 */
@@ -993,13 +1244,22 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 0;
-  border-bottom: 1px solid var(--border-color);
-  transition: border-color 0.3s ease;
+  padding: 20px 24px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+}
+
+.preference-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  transform: translateY(-2px);
 }
 
 .preference-item:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .preference-info {
@@ -1007,42 +1267,67 @@ onMounted(async () => {
 }
 
 .preference-title {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  font-size: 15px;
   transition: color 0.3s ease;
 }
 
 .preference-desc {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   transition: color 0.3s ease;
+  line-height: 1.5;
 }
 
 .preference-actions {
-  margin-top: 32px;
+  margin-top: 40px;
   text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-light);
+  transition: border-color 0.3s ease;
+}
+
+.preference-actions .el-button {
+  padding: 12px 40px;
+  font-size: 15px;
+}
+
+.settings-section :deep(.el-select) {
+  width: 180px;
+}
+
+.settings-section :deep(.el-select .el-input__wrapper) {
+  border-radius: 8px;
+}
+
+.settings-section :deep(.el-switch.is-checked .el-switch__core) {
+  background-color: #667eea;
 }
 
 /* 数据导出 */
 .data-export {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .export-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  transition: border-color 0.3s ease;
+  padding: 24px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--bg-color);
+  transition: all 0.3s ease;
 }
 
 .export-item:hover {
   border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
 }
 
 .export-info {
@@ -1050,36 +1335,53 @@ onMounted(async () => {
 }
 
 .export-title {
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 4px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  font-size: 15px;
+  transition: color 0.3s ease;
 }
 
 .export-desc {
-  color: #909399;
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: color 0.3s ease;
+  line-height: 1.5;
 }
 
 /* 危险操作 */
 .danger-zone {
   border-left: 4px solid #f56c6c;
-  background: #fef0f0;
+  background: rgba(245, 108, 108, 0.05);
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.dark .danger-zone {
+  background: rgba(245, 108, 108, 0.1);
 }
 
 .danger-actions {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .danger-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
-  border: 1px solid #fab1a0;
-  border-radius: 8px;
-  background: white;
+  padding: 24px;
+  border: 1px solid rgba(245, 108, 108, 0.3);
+  border-radius: 12px;
+  background: var(--card-bg);
+  transition: all 0.3s ease;
+}
+
+.danger-item:hover {
+  border-color: #f56c6c;
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.2);
+  transform: translateY(-2px);
 }
 
 .danger-info {
@@ -1087,14 +1389,32 @@ onMounted(async () => {
 }
 
 .danger-title {
-  font-weight: 500;
-  color: #d63031;
-  margin-bottom: 4px;
+  font-weight: 600;
+  color: #f56c6c;
+  margin-bottom: 6px;
+  font-size: 15px;
 }
 
 .danger-desc {
-  color: #636e72;
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  transition: color 0.3s ease;
+}
+
+.settings-section :deep(.el-button--danger) {
+  background: #f56c6c;
+  border: none;
+  padding: 12px 28px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.settings-section :deep(.el-button--danger:hover) {
+  background: #e85a5a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
 }
 
 /* 设备列表 */
@@ -1108,15 +1428,26 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  background: white;
+  padding: 20px 24px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--bg-color);
+  transition: all 0.3s ease;
+}
+
+.device-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .device-item.current {
   border-color: #67c23a;
-  background: #f0f9ff;
+  background: rgba(103, 194, 58, 0.05);
+  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.15);
+}
+
+.dark .device-item.current {
+  background: rgba(103, 194, 58, 0.1);
 }
 
 .device-info {
@@ -1126,14 +1457,21 @@ onMounted(async () => {
 }
 
 .device-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: #f0f4ff;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #667eea;
+  color: white;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.device-item.current .device-icon {
+  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
 }
 
 .device-details {
@@ -1141,14 +1479,18 @@ onMounted(async () => {
 }
 
 .device-name {
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 4px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  font-size: 15px;
+  transition: color 0.3s ease;
 }
 
 .device-meta {
-  color: #909399;
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: color 0.3s ease;
+  line-height: 1.5;
 }
 
 /* 响应式 */

@@ -16,4 +16,19 @@ public class UpdateProfileRequest {
      */
     @NotBlank(message = "用户名不能为空")
     private String username;
+    
+    /**
+     * 昵称
+     */
+    private String nickname;
+    
+    /**
+     * 个人简介
+     */
+    private String bio;
+    
+    /**
+     * 性别：male, female, other, private
+     */
+    private String gender;
 }

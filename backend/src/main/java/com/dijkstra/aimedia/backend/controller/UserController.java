@@ -69,6 +69,22 @@ public class UserController {
     }
     
     /**
+     * 获取当前用户信息
+     * 
+     * @param httpRequest HTTP请求
+     * @return 用户信息
+     */
+    @GetMapping("/profile")
+    public Result<User> getProfile(HttpServletRequest httpRequest) {
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        User user = userService.getUserById(userId);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+        return Result.success(user);
+    }
+    
+    /**
      * 更新用户信息
      * 
      * @param request 更新请求
@@ -80,7 +96,7 @@ public class UserController {
             @Valid @RequestBody UpdateProfileRequest request,
             HttpServletRequest httpRequest) {
         Long userId = (Long) httpRequest.getAttribute("userId");
-        User user = userService.updateProfile(userId, request.getUsername());
+        User user = userService.updateProfile(userId, request);
         return Result.success("更新成功", user);
     }
     
@@ -143,5 +159,18 @@ public class UserController {
         Long userId = (Long) httpRequest.getAttribute("userId");
         java.util.Map<String, Object> preferences = userService.getPreferences(userId);
         return Result.success(preferences);
+    }
+    
+    /**
+     * 删除用户账户
+     * 
+     * @param httpRequest HTTP请求
+     * @return 是否成功
+     */
+    @DeleteMapping("/delete")
+    public Result<Boolean> deleteAccount(HttpServletRequest httpRequest) {
+        Long userId = (Long) httpRequest.getAttribute("userId");
+        userService.deleteAccount(userId);
+        return Result.success("账户删除成功", true);
     }
 }

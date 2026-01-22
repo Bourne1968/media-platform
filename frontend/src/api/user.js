@@ -86,3 +86,23 @@ export function getPreferences() {
     method: 'get'
   })
 }
+
+/**
+ * 获取当前用户信息
+ */
+export function getProfile() {
+  return request({
+    url: '/user/profile',
+    method: 'get'
+  })
+}
+
+/**
+ * 删除用户账户
+ */
+export function deleteAccount() {
+  return request({
+    url: '/user/delete',
+    method: 'delete'
+  })
+}

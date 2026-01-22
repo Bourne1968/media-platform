@@ -1251,42 +1251,47 @@ onMounted(() => {
 .page-title {
   font-size: 32px;
   font-weight: 700;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
+  transition: color 0.3s ease;
 }
 
 .page-subtitle {
   font-size: 16px;
-  color: #909399;
+  color: var(--text-secondary);
   margin: 0;
+  transition: color 0.3s ease;
 }
 
 .inspiration-content {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  transition: background-color 0.3s ease;
 }
 
 .inspiration-tabs :deep(.el-tabs__header) {
   margin: 0;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .inspiration-tabs :deep(.el-tabs__item) {
   font-weight: 500;
   padding: 16px 24px;
   border-bottom: 2px solid transparent;
+  transition: color 0.3s ease;
 }
 
 .inspiration-tabs :deep(.el-tabs__item.is-active) {
-  color: #667eea;
-  border-bottom-color: #667eea;
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
 }
 
 .inspiration-tabs :deep(.el-tabs__content) {
@@ -1298,20 +1303,23 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 24px 32px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
+  transition: border-color 0.3s ease;
 }
 
 .tab-info h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 4px 0;
+  transition: color 0.3s ease;
 }
 
 .tab-info p {
-  color: #909399;
+  color: var(--text-secondary);
   margin: 0;
   font-size: 14px;
+  transition: color 0.3s ease;
 }
 
 .tab-actions {
@@ -1321,8 +1329,9 @@ onMounted(() => {
 
 .filters, .case-filters {
   padding: 16px 32px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* 话题卡片 */
@@ -1334,9 +1343,9 @@ onMounted(() => {
 }
 
 .topic-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
-  border: 2px solid #f0f0f0;
+  border: 2px solid var(--border-color);
   padding: 24px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1345,7 +1354,7 @@ onMounted(() => {
 }
 
 .topic-card:hover {
-  border-color: #667eea;
+  border-color: var(--primary-color);
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
   transform: translateY(-2px);
 }
@@ -1368,29 +1377,33 @@ onMounted(() => {
 .topic-rank {
   font-size: 18px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--primary-color);
+  transition: color 0.3s ease;
 }
 
 .topic-heat {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #f56c6c;
+  color: var(--danger-color);
   font-weight: 600;
+  transition: color 0.3s ease;
 }
 
 .topic-content h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   line-height: 1.4;
+  transition: color 0.3s ease;
 }
 
 .topic-content p {
-  color: #606266;
+  color: var(--text-regular);
   margin: 0 0 16px 0;
   line-height: 1.6;
+  transition: color 0.3s ease;
 }
 
 .topic-stats {
@@ -1403,8 +1416,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 14px;
+  transition: color 0.3s ease;
 }
 
 .topic-tags {
@@ -1416,17 +1430,19 @@ onMounted(() => {
 .topic-footer {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: border-color 0.3s ease;
 }
 
 /* 推荐设置 */
 .recommendation-settings {
   padding: 16px 32px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 /* 推荐卡片 */
@@ -1438,15 +1454,15 @@ onMounted(() => {
 }
 
 .recommendation-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-color);
   padding: 24px;
   transition: all 0.3s ease;
 }
 
 .recommendation-card:hover {
-  border-color: #667eea;
+  border-color: var(--primary-color);
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.1);
 }
 
@@ -1466,15 +1482,17 @@ onMounted(() => {
 .recommendation-content h4 {
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   line-height: 1.4;
+  transition: color 0.3s ease;
 }
 
 .recommendation-content p {
-  color: #606266;
+  color: var(--text-regular);
   margin: 0 0 16px 0;
   line-height: 1.6;
+  transition: color 0.3s ease;
 }
 
 .recommendation-analysis {
@@ -1491,8 +1509,9 @@ onMounted(() => {
 
 .analysis-item .label {
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   min-width: 80px;
+  transition: color 0.3s ease;
 }
 
 .analysis-item .value {
@@ -1503,10 +1522,11 @@ onMounted(() => {
 .recommendation-footer {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: border-color 0.3s ease;
 }
 
 .recommendation-tags {
@@ -1529,16 +1549,16 @@ onMounted(() => {
 }
 
 .case-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-color);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .case-card:hover {
-  border-color: #667eea;
+  border-color: var(--primary-color);
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
   transform: translateY(-2px);
 }
@@ -1593,16 +1613,18 @@ onMounted(() => {
 .case-content h4 {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   line-height: 1.4;
+  transition: color 0.3s ease;
 }
 
 .case-content p {
-  color: #606266;
+  color: var(--text-regular);
   margin: 0 0 16px 0;
   line-height: 1.6;
   font-size: 14px;
+  transition: color 0.3s ease;
 }
 
 .case-analysis {
@@ -1610,7 +1632,8 @@ onMounted(() => {
   flex-direction: column;
   gap: 8px;
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .analysis-tag {
@@ -1622,8 +1645,9 @@ onMounted(() => {
 
 .analysis-tag .label {
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   margin-right: 4px;
+  transition: color 0.3s ease;
 }
 
 .case-author, .case-time {
@@ -1634,16 +1658,18 @@ onMounted(() => {
 .case-author .label,
 .case-time .label {
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   margin-right: 4px;
+  transition: color 0.3s ease;
 }
 
 .case-footer {
   padding: 16px 20px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  transition: border-color 0.3s ease;
 }
 
 /* 响应式 */

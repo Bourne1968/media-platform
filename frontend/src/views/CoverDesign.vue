@@ -691,8 +691,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   
   .cover-design-page {
     min-height: 100vh;
-    background: linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
+    background: var(--bg-color);
     padding-bottom: 32px;
+    transition: background-color 0.3s ease;
   }
   
   .main-layout {
@@ -705,33 +706,37 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   }
   
   .left-panel {
-    background: var(--gray-50);
+    background: var(--card-bg);
     border-radius: 16px;
     padding: 24px;
     height: calc(100vh - 20px);
     overflow-y: auto;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.3s ease;
   }
   
   .right-panel {
-    background: #ffffff;
+    background: var(--card-bg);
     border-radius: 16px;
     padding: 24px;
     min-height: calc(100vh - 20px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
     overflow-y: auto;
+    transition: background-color 0.3s ease;
   }
 
   .divider {
     height: 1px;
-    background: var(--gray-200);
+    background: var(--border-color);
     margin: 24px 0;
+    transition: background-color 0.3s ease;
   }
 
   .section-title {
     font-weight: 600;
-    color: var(--gray-900);
+    color: var(--text-primary);
     margin-bottom: 12px;
+    transition: color 0.3s ease;
   }
 
   .type-grid {
@@ -742,25 +747,25 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
   .type-card {
     padding: 14px 10px;
-    background: #ffffff;
-    border: 1px solid var(--gray-200);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: var(--gray-600);
+    color: var(--text-regular);
   }
 
   .type-card:hover {
     transform: translateY(-2px);
-    border-color: var(--primary-blue);
+    border-color: var(--primary-color);
   }
 
   .type-card.active {
-    background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
-    border-color: #0066ff;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    border-color: var(--primary-color);
     color: #ffffff;
-    box-shadow: 0 6px 20px rgba(0, 102, 255, 0.35);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
     font-weight: 700;
     transform: translateY(-2px);
   }
@@ -792,10 +797,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   }
 
   :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-    background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
-    border-color: #0066ff;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    border-color: var(--primary-color);
     color: #ffffff;
-    box-shadow: 0 3px 10px rgba(0, 102, 255, 0.3);
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
     font-weight: 600;
   }
 
@@ -807,34 +812,34 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
   .style-chip {
     padding: 10px 12px;
-    background: #ffffff;
-    border: 1px solid var(--gray-200);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: var(--gray-600);
+    color: var(--text-regular);
     font-size: 14px;
   }
 
   .style-chip:hover {
-    border-color: var(--primary-blue);
-    background: var(--primary-blue-light);
+    border-color: var(--primary-color);
+    background: var(--primary-light);
   }
 
   .style-chip.active {
-    background: var(--primary-blue);
-    border-color: var(--primary-blue);
-    color: #000000 !important;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff !important;
     font-weight: 700;
     font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0, 102, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
   }
 
   .style-chip.active:hover {
-    background: var(--primary-blue-dark);
-    border-color: var(--primary-blue-dark);
-    color: #000000 !important;
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: #ffffff !important;
   }
 
   .color-grid {
@@ -845,7 +850,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
   .color-card {
     padding: 10px;
-    background: #ffffff;
+    background: var(--card-bg);
     border: 2px solid transparent;
     border-radius: 10px;
     text-align: center;
@@ -859,8 +864,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   }
 
   .color-card.active {
-    border-color: var(--primary-blue);
-    box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   }
 
   .color-icon {
@@ -876,8 +881,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
   .color-label {
     font-size: 12px;
-    color: var(--gray-600);
+    color: var(--text-secondary);
     font-weight: 500;
+    transition: color 0.3s ease;
   }
 
   .field {
@@ -886,15 +892,17 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
   .field-label {
     font-weight: 600;
-    color: var(--gray-900);
+    color: var(--text-primary);
     margin-bottom: 8px;
     font-size: 14px;
+    transition: color 0.3s ease;
   }
 
   .advanced-section {
-    background: #ffffff;
+    background: var(--bg-card);
     border-radius: 12px;
     padding: 0 12px;
+    transition: background 0.3s ease;
   }
 
   .chip-group {
@@ -906,7 +914,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
     cursor: pointer;
     border-radius: 8px;
     padding: 6px 16px;
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
   }
 
   .chip.active {
@@ -993,8 +1002,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
   .template-card {
     padding: 16px;
-    background: #ffffff;
-    border: 1px solid var(--gray-200);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -1010,19 +1019,21 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   .template-preview {
     width: 100%;
     height: 100px;
-    background: var(--gray-100);
+    background: var(--bg-color);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 32px;
     margin-bottom: 8px;
+    transition: background 0.3s ease;
   }
 
   .template-name {
     font-weight: 600;
-    color: var(--gray-900);
+    color: var(--text-primary);
     font-size: 14px;
+    transition: color 0.3s ease;
   }
 
   .template-badge {
@@ -1046,13 +1057,15 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   .title-medium {
     font-size: 18px;
     font-weight: 700;
-    color: var(--gray-900);
+    color: var(--text-primary);
     margin-bottom: 4px;
+    transition: color 0.3s ease;
   }
 
   .caption {
     font-size: 12px;
-    color: var(--gray-600);
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
   }
 
   .preview-actions {
@@ -1061,11 +1074,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   }
 
   .preview-body {
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
     min-height: calc(100vh - 280px);
-    background: #ffffff;
+    background: var(--bg-card);
+    transition: all 0.3s ease;
   }
 
   .empty-state,
@@ -1078,7 +1092,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
     gap: 12px;
     height: 100%;
     text-align: center;
-    color: var(--gray-600);
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
   }
 
   .emoji {
@@ -1087,8 +1102,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
   .progress-text {
     font-size: 14px;
-    color: var(--gray-600);
+    color: var(--text-secondary);
     margin-top: 8px;
+    transition: color 0.3s ease;
   }
 
   .single-view {
@@ -1102,10 +1118,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
     display: flex;
     justify-content: center;
     align-items: center;
-    background: var(--gray-50);
+    background: var(--bg-color);
     border-radius: 12px;
     padding: 20px;
     min-height: 500px;
+    transition: background 0.3s ease;
   }
 
   .image-preview-large img {
@@ -1120,8 +1137,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
     align-items: center;
     justify-content: center;
     height: 400px;
-    color: var(--gray-600);
+    color: var(--text-secondary);
     font-size: 14px;
+    transition: color 0.3s ease;
   }
 
   .image-navigation {
@@ -1133,8 +1151,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
   .image-counter {
     font-size: 14px;
-    color: var(--gray-600);
+    color: var(--text-secondary);
     font-weight: 500;
+    transition: color 0.3s ease;
   }
 
   .image-actions {
@@ -1150,10 +1169,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   }
 
   .image-card {
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 12px;
-    background: #ffffff;
+    background: var(--bg-card);
     transition: all 0.2s ease;
   }
 
@@ -1165,10 +1184,11 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   .image-preview {
     width: 100%;
     aspect-ratio: 9/16;
-    background: var(--gray-50);
+    background: var(--bg-color);
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 8px;
+    transition: background 0.3s ease;
   }
 
   .image-preview img {
@@ -1181,6 +1201,30 @@ import { ElMessage, ElMessageBox } from 'element-plus'
     color: #ffb800;
     font-size: 14px;
     margin-bottom: 8px;
+  }
+
+  /* 输入框深色模式 */
+  :deep(.el-textarea__inner),
+  :deep(.el-input__inner) {
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+    transition: all 0.3s ease;
+  }
+
+  :deep(.el-textarea__inner::placeholder),
+  :deep(.el-input__inner::placeholder) {
+    color: var(--text-placeholder) !important;
+  }
+
+  :deep(.el-textarea__inner:focus),
+  :deep(.el-input__inner:focus) {
+    border-color: var(--primary-color) !important;
+  }
+
+  :deep(.el-input__count) {
+    color: var(--text-secondary) !important;
+    background-color: transparent !important;
   }
 
   .image-card-actions {

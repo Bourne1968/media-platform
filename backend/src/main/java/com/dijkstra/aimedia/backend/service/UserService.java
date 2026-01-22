@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.dijkstra.aimedia.backend.entity.User;
 import com.dijkstra.aimedia.backend.exception.BusinessException;
 import com.dijkstra.aimedia.backend.mapper.UserMapper;
+import com.dijkstra.aimedia.backend.mapper.CreationRecordMapper;
 import com.dijkstra.aimedia.backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.time.LocalDate;
 public class UserService {
     
     private final UserMapper userMapper;
+    private final CreationRecordMapper creationRecordMapper;
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
@@ -128,25 +130,53 @@ public class UserService {
      * 更新用户信息
      * 
      * @param userId 用户ID
-     * @param username 用户名
+     * @param request 更新请求
      * @return 更新后的用户信息
      */
     @Transactional(rollbackFor = Exception.class)
-    public User updateProfile(Long userId, String username) {
+    public User updateProfile(Long userId, com.dijkstra.aimedia.backend.dto.UpdateProfileRequest request) {
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(ResultCode.ERROR.getCode(), "用户不存在");
         }
         
         // 如果用户名改变，检查是否重复
-        if (username != null && !username.equals(user.getUsername())) {
+        if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
             LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(User::getUsername, username);
+            queryWrapper.eq(User::getUsername, request.getUsername());
             User existingUser = userMapper.selectOne(queryWrapper);
             if (existingUser != null && !existingUser.getId().equals(userId)) {
                 throw new BusinessException(ResultCode.ERROR.getCode(), "用户名已存在");
             }
-            user.setUsername(username);
+            user.setUsername(request.getUsername());
+        }
+        
+        // 将昵称、简介、性别存储在preferences JSON中
+        try {
+            java.util.Map<String, Object> preferences = new java.util.HashMap<>();
+            if (user.getPreferences() != null && !user.getPreferences().isEmpty()) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> existingPrefs = (java.util.Map<String, Object>) objectMapper.readValue(
+                    user.getPreferences(), 
+                    objectMapper.getTypeFactory().constructMapType(java.util.Map.class, String.class, Object.class));
+                preferences = existingPrefs;
+            }
+            
+            // 更新个人信息字段
+            if (request.getNickname() != null) {
+                preferences.put("nickname", request.getNickname());
+            }
+            if (request.getBio() != null) {
+                preferences.put("bio", request.getBio());
+            }
+            if (request.getGender() != null) {
+                preferences.put("gender", request.getGender());
+            }
+            
+            // 保存到preferences字段
+            user.setPreferences(objectMapper.writeValueAsString(preferences));
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "保存用户信息失败");
         }
         
         user.setUpdateTime(LocalDateTime.now());
@@ -289,11 +319,35 @@ public class UserService {
         
         try {
             // 将JSON字符串转换为Map
-            return objectMapper.readValue(user.getPreferences(), 
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> result = (java.util.Map<String, Object>) objectMapper.readValue(user.getPreferences(), 
                 objectMapper.getTypeFactory().constructMapType(
                     java.util.Map.class, String.class, Object.class));
+            return result;
         } catch (JsonProcessingException e) {
             throw new BusinessException(ResultCode.ERROR.getCode(), "偏好设置格式错误");
         }
+    }
+    
+    /**
+     * 删除用户账户（同时删除所有创作记录）
+     * 
+     * @param userId 用户ID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAccount(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "用户不存在");
+        }
+        
+        // 删除用户的所有创作记录
+        LambdaQueryWrapper<com.dijkstra.aimedia.backend.entity.CreationRecord> recordWrapper = 
+            new LambdaQueryWrapper<>();
+        recordWrapper.eq(com.dijkstra.aimedia.backend.entity.CreationRecord::getUserId, userId);
+        creationRecordMapper.delete(recordWrapper);
+        
+        // 删除用户
+        userMapper.deleteById(userId);
     }
 }

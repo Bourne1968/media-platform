@@ -1,6 +1,6 @@
 <template>
   <div class="workbench-page">
-    <div class="main-layout">
+        <div class="main-layout">
           <section class="left-panel">
         <div class="section">
           <div class="section-title">创作类型</div>
@@ -251,7 +251,7 @@
         </div>
       </section>
     </div>
-  </div>
+</div>
 </template>
 
 <script setup>
@@ -509,8 +509,9 @@ onMounted(() => {
 
 .workbench-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
+  background: var(--bg-color);
   padding-bottom: 32px;
+  transition: background-color 0.3s ease;
 }
 
 .main-layout {
@@ -523,20 +524,22 @@ onMounted(() => {
 }
 
 .left-panel {
-  background: var(--gray-50);
+  background: var(--card-bg);
   border-radius: 16px;
   padding: 24px;
   height: calc(100vh - 20px);
   overflow-y: auto;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s ease;
 }
 
 .right-panel {
-  background: #ffffff;
+  background: var(--card-bg);
   border-radius: 16px;
   padding: 24px;
   min-height: calc(100vh - 20px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s ease;
 }
 
 .panel-header {
@@ -546,30 +549,35 @@ onMounted(() => {
 }
 
 .back-btn {
-  color: var(--gray-600);
+  color: var(--text-regular);
+  transition: color 0.3s ease;
 }
 
 .panel-title .title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--gray-900);
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .panel-title .subtitle {
-  color: var(--gray-600);
+  color: var(--text-regular);
   font-size: 13px;
+  transition: color 0.3s ease;
 }
 
 .divider {
   height: 1px;
-  background: var(--gray-200);
+  background: var(--border-color);
   margin: 24px 0;
+  transition: background-color 0.3s ease;
 }
 
 .section-title {
   font-weight: 600;
-  color: var(--gray-900);
+  color: var(--text-primary);
   margin-bottom: 12px;
+  transition: color 0.3s ease;
 }
 
 .type-grid {
@@ -580,25 +588,25 @@ onMounted(() => {
 
 .type-card {
   padding: 14px 10px;
-  background: #ffffff;
-  border: 1px solid var(--gray-200);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: var(--gray-600);
+  color: var(--text-regular);
 }
 
 .type-card:hover {
   transform: translateY(-2px);
-  border-color: var(--primary-blue);
+  border-color: var(--primary-color);
 }
 
 .type-card.active {
-  background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
-  border-color: #0066ff;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-color: var(--primary-color);
   color: #ffffff;
-  box-shadow: 0 6px 20px rgba(0, 102, 255, 0.35);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
   font-weight: 700;
   transform: translateY(-2px);
 }
@@ -627,16 +635,17 @@ onMounted(() => {
 }
 
 :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
-  border-color: #0066ff;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  border-color: var(--primary-color);
   color: #ffffff;
-  box-shadow: 0 3px 10px rgba(0, 102, 255, 0.3);
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
   font-weight: 600;
 }
 
 .style-desc {
   font-size: 12px;
-  color: var(--gray-600);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 ::deep(.el-radio-button__inner) {
@@ -655,13 +664,14 @@ onMounted(() => {
 }
 
 ::deep(.el-radio-button__inner:hover) {
-  background: #f5f7fb;
+  background: var(--border-light);
 }
 
 .advanced-section {
-  background: #ffffff;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 0 12px;
+  transition: background-color 0.3s ease;
 }
 
 .field {
@@ -678,8 +688,9 @@ onMounted(() => {
 
 .field-label {
   font-weight: 600;
-  color: var(--gray-900);
+  color: var(--text-primary);
   margin-bottom: 6px;
+  transition: color 0.3s ease;
 }
 
 .slider-row {
@@ -695,7 +706,8 @@ onMounted(() => {
 .slider-value {
   width: 120px;
   text-align: right;
-  color: var(--gray-600);
+  color: var(--text-regular);
+  transition: color 0.3s ease;
 }
 
 .chip-group {
@@ -707,25 +719,27 @@ onMounted(() => {
   cursor: pointer;
   border-radius: 8px;
   padding: 6px 12px;
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .chip.active {
-  background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: #ffffff;
-  border-color: #0066ff;
+  border-color: var(--primary-color);
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 102, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .tag-input {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  background: #ffffff;
-  border: 1px solid var(--gray-200);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 8px;
+  transition: all 0.3s ease;
 }
 
 .cta-group {
@@ -739,7 +753,7 @@ onMounted(() => {
 .generate-btn {
   width: 100%;
   height: 48px;
-  background: linear-gradient(135deg, #0066ff 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   border: none;
   color: #ffffff;
   font-weight: 700;
@@ -749,6 +763,7 @@ onMounted(() => {
   border-radius: 10px;
   padding: 0 20px;
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
 .generate-btn:hover {
@@ -789,7 +804,32 @@ onMounted(() => {
 
 .caption {
   font-size: 12px;
-  color: var(--gray-600);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+/* 输入框深色模式 */
+:deep(.el-textarea__inner),
+:deep(.el-input__inner) {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+  transition: all 0.3s ease;
+}
+
+:deep(.el-textarea__inner::placeholder),
+:deep(.el-input__inner::placeholder) {
+  color: var(--text-placeholder) !important;
+}
+
+:deep(.el-textarea__inner:focus),
+:deep(.el-input__inner:focus) {
+  border-color: var(--primary-color) !important;
+}
+
+:deep(.el-input__count) {
+  color: var(--text-secondary) !important;
+  background-color: transparent !important;
 }
 
 .preview-header {
@@ -805,11 +845,12 @@ onMounted(() => {
 }
 
 .preview-body {
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
   min-height: calc(100vh - 180px);
-  background: #ffffff;
+  background: var(--card-bg);
+  transition: all 0.3s ease;
 }
 
 .empty-state,
@@ -822,7 +863,8 @@ onMounted(() => {
   gap: 10px;
   height: 100%;
   text-align: center;
-  color: var(--gray-600);
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .emoji {
@@ -836,21 +878,30 @@ onMounted(() => {
 }
 
 .result-card {
-  border: 1px solid var(--gray-200);
+  border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 16px;
-  background: #ffffff;
-  transition: all 0.2s ease;
+  background: var(--card-bg);
+  transition: all 0.3s ease;
 }
 
 .result-card:hover {
-  border-color: var(--primary-blue);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  border-color: #667eea;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.dark .result-card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
 .result-card.active {
-  background: var(--primary-blue-light);
-  border-color: var(--primary-blue);
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
+}
+
+.dark .result-card.active {
+  background: rgba(102, 126, 234, 0.2);
 }
 
 .result-head {
@@ -864,7 +915,7 @@ onMounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0066ff, #764ba2);
+  background: linear-gradient(135deg, #667eea, #764ba2);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -875,26 +926,29 @@ onMounted(() => {
 .result-title {
   flex: 1;
   font-weight: 600;
-  color: var(--gray-900);
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .rating {
-  color: var(--star-gold);
+  color: #ffb800;
 }
 
 .result-meta {
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: var(--gray-600);
+  color: var(--text-secondary);
   margin-bottom: 8px;
+  transition: color 0.3s ease;
 }
 
 .result-content {
   white-space: pre-wrap;
-  color: var(--gray-900);
+  color: var(--text-regular);
   line-height: 1.7;
   margin-bottom: 10px;
+  transition: color 0.3s ease;
 }
 
 .result-actions {

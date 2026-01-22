@@ -34,43 +34,43 @@ const routes = [
     path: '/home',
     name: 'Home',
     component: Home,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: '首页' }
   },
   {
     path: '/workbench',
     name: 'Workbench',
     component: Workbench,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'AI创作工作台' }
   },
   {
     path: '/cover-design',
     name: 'CoverDesign',
     component: CoverDesign,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: 'AI封面设计' }
   },
   {
     path: '/history',
     name: 'History',
     component: History,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: '创作库' }
   },
   {
     path: '/calendar',
     name: 'Calendar',
     component: Calendar,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: '创作日历' }
   },
   {
     path: '/inspiration',
     name: 'Inspiration',
     component: Inspiration,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: '灵感中心' }
   },
   {
     path: '/settings',
     name: 'Settings',
     component: Settings,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, title: '个人设置' }
   },
   {
     path: '/admin',

@@ -523,8 +523,68 @@ const handleDelete = async (id) => {
 }
 
 const viewProject = (record) => {
-  // 可以跳转到详情页或显示详情弹窗
-  ElMessage.info('查看项目详情功能开发中...')
+  // 显示项目详情弹窗
+  showProjectDetail(record)
+}
+
+// 显示项目详情
+const showProjectDetail = (record) => {
+  const content = record.type === 'TEXT' 
+    ? `<div style="text-align: left; max-height: 500px; overflow-y: auto;">
+         <div style="margin-bottom: 16px;">
+           <el-tag type="${record.type === 'TEXT' ? 'success' : 'warning'}" size="small" style="margin-right: 8px;">
+             ${record.type === 'TEXT' ? '文案' : '封面'}
+           </el-tag>
+           <span style="font-size: 12px; color: #909399;">${formatDateTime(record.createTime)}</span>
+         </div>
+         <h3 style="margin-top: 0; margin-bottom: 12px; color: #303133; font-size: 16px;">创作提示</h3>
+         <div style="margin-bottom: 20px; padding: 12px; background: #f5f7fa; border-radius: 8px; color: #606266; line-height: 1.6;">
+           ${record.prompt || '无提示词'}
+         </div>
+         <h3 style="margin-top: 0; margin-bottom: 12px; color: #303133; font-size: 16px;">生成内容</h3>
+         <div style="padding: 12px; background: #f5f7fa; border-radius: 8px; white-space: pre-wrap; line-height: 1.8; color: #303133; font-size: 14px;">
+           ${record.resultContent || '无内容'}
+         </div>
+       </div>`
+    : `<div style="text-align: left;">
+         <div style="margin-bottom: 16px;">
+           <el-tag type="${record.type === 'TEXT' ? 'success' : 'warning'}" size="small" style="margin-right: 8px;">
+             ${record.type === 'TEXT' ? '文案' : '封面'}
+           </el-tag>
+           <span style="font-size: 12px; color: #909399;">${formatDateTime(record.createTime)}</span>
+         </div>
+         <h3 style="margin-top: 0; margin-bottom: 12px; color: #303133; font-size: 16px;">创作提示</h3>
+         <div style="margin-bottom: 20px; padding: 12px; background: #f5f7fa; border-radius: 8px; color: #606266; line-height: 1.6;">
+           ${record.prompt || '无提示词'}
+         </div>
+         <h3 style="margin-top: 0; margin-bottom: 12px; color: #303133; font-size: 16px;">生成的图片</h3>
+         <div style="text-align: center; margin-bottom: 12px;">
+           <img src="${record.imageUrl}" alt="生成的图片" style="max-width: 100%; max-height: 400px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+         </div>
+       </div>`
+
+  ElMessageBox.alert(
+    content,
+    '项目详情',
+    {
+      dangerouslyUseHTMLString: true,
+      confirmButtonText: '关闭',
+      customClass: 'project-detail-dialog',
+      width: '600px'
+    }
+  )
+}
+
+// 格式化日期时间
+const formatDateTime = (timeStr) => {
+  if (!timeStr) return ''
+  const date = new Date(timeStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
 const viewAllProjects = () => {
@@ -634,16 +694,18 @@ onMounted(() => {
 .greeting-text {
   font-size: 32px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 10px 0;
   line-height: 1.4;
+  transition: color 0.3s ease;
 }
 
 .date-text {
   font-size: 16px;
-  color: #909399;
+  color: var(--text-secondary);
   margin: 0;
   font-weight: 400;
+  transition: color 0.3s ease;
 }
 
 /* 快速开始区域 */
@@ -661,11 +723,12 @@ onMounted(() => {
 .section-title {
   font-size: 22px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0;
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: color 0.3s ease;
 }
 
 .quick-cards {
@@ -675,14 +738,14 @@ onMounted(() => {
 }
 
 .quick-card {
-  background: white;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 28px 24px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
 }
@@ -704,8 +767,8 @@ onMounted(() => {
 }
 
 .quick-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
   transform: translateY(-4px);
 }
 
@@ -746,17 +809,19 @@ onMounted(() => {
 
 .card-label {
   font-size: 16px;
-  color: #303133;
+  color: var(--text-primary);
   font-weight: 500;
   position: relative;
   z-index: 1;
+  transition: color 0.3s ease;
 }
 
 /* 分割线 */
 .divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, #e4e7ed 20%, #e4e7ed 80%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--border-color) 20%, var(--border-color) 80%, transparent 100%);
   margin: 32px 0;
+  transition: background 0.3s ease;
 }
 
 /* 最近项目区域 */
@@ -765,23 +830,23 @@ onMounted(() => {
 }
 
 .projects-list {
-  background: white;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.3s ease, background 0.3s ease, border-color 0.3s ease;
 }
 
 .projects-list:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .project-item {
   display: flex;
   align-items: center;
   padding: 18px 24px;
-  border-bottom: 1px solid #f5f7fa;
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -804,7 +869,7 @@ onMounted(() => {
 }
 
 .project-item:hover {
-  background: linear-gradient(90deg, #f8f9ff 0%, rgba(248, 249, 255, 0.5) 100%);
+  background: var(--bg-hover);
   padding-left: 28px;
 }
 
@@ -840,7 +905,7 @@ onMounted(() => {
 
 .project-title {
   font-size: 16px;
-  color: #303133;
+  color: var(--text-primary);
   font-weight: 500;
   margin-bottom: 6px;
   overflow: hidden;
@@ -850,15 +915,16 @@ onMounted(() => {
 }
 
 .project-item:hover .project-title {
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .project-time {
   font-size: 13px;
-  color: #909399;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 4px;
+  transition: color 0.3s ease;
 }
 
 .project-actions {
@@ -884,12 +950,13 @@ onMounted(() => {
 
 /* 筛选和搜索区域 */
 .filters-section {
-  background: white;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .filter-row {
@@ -907,8 +974,9 @@ onMounted(() => {
 
 .filter-label {
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   white-space: nowrap;
+  transition: color 0.3s ease;
 }
 
 .search-row {
@@ -919,11 +987,12 @@ onMounted(() => {
 
 /* 项目列表容器 */
 .projects-list-container {
-  background: white;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .projects-grid {
@@ -934,16 +1003,16 @@ onMounted(() => {
 
 /* 项目卡片 */
 .project-card {
-  border-bottom: 1px solid #f0f0f0;
-  border-right: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
   padding: 20px;
   transition: all 0.3s ease;
 }
 
 .project-card:hover {
-  background: #fafafa;
+  background: var(--bg-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .project-card:last-child {
@@ -973,16 +1042,18 @@ onMounted(() => {
 .project-title {
   font-size: 16px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 8px;
   line-height: 1.4;
+  transition: color 0.3s ease;
 }
 
 .project-preview {
   margin-bottom: 12px;
-  color: #606266;
+  color: var(--text-regular);
   line-height: 1.6;
   font-size: 14px;
+  transition: color 0.3s ease;
 }
 
 .preview-image {
@@ -990,22 +1061,26 @@ onMounted(() => {
   height: 120px;
   object-fit: cover;
   border-radius: 6px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-color);
+  transition: border-color 0.3s ease;
 }
 
 .project-prompt {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .prompt-label {
   font-weight: 500;
-  color: #606266;
+  color: var(--text-regular);
+  transition: color 0.3s ease;
 }
 
 .project-card-footer {
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
   padding-top: 12px;
+  transition: border-color 0.3s ease;
 }
 
 .project-actions {
@@ -1049,11 +1124,11 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: white;
-  border: 1px solid #e4e7ed;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 28px 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -1077,17 +1152,18 @@ onMounted(() => {
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+  box-shadow: var(--shadow-md);
   transform: translateY(-4px);
-  border-color: #c5d7ff;
+  border-color: var(--primary-color);
 }
 
 .stat-label {
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
   margin-bottom: 16px;
   font-weight: 400;
   letter-spacing: 0.3px;
+  transition: color 0.3s ease;
 }
 
 .stat-value {

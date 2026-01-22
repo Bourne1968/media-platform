@@ -126,9 +126,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, ArrowRight, View, Edit, Delete } from '@element-plus/icons-vue'
 import { getRecordList } from '@/api/creation'
+
+const router = useRouter()
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -295,25 +298,108 @@ const formatTime = (timeStr) => {
 }
 
 const viewRecord = (record) => {
-  // 跳转到历史记录页面并定位到该记录
-  ElMessage.info('查看记录功能')
+  // 显示记录详情弹窗
+  showRecordDetail(record)
 }
 
 const editRecord = (record) => {
-  ElMessage.info('编辑记录功能')
+  // 根据类型跳转到对应的编辑页面
+  if (record.type === 'TEXT') {
+    router.push({
+      path: '/workbench',
+      query: {
+        editId: record.id,
+        prompt: record.prompt || ''
+      }
+    })
+  } else if (record.type === 'IMAGE') {
+    router.push({
+      path: '/cover-design',
+      query: {
+        editId: record.id,
+        prompt: record.prompt || ''
+      }
+    })
+  }
 }
 
 const deleteRecord = async (record) => {
   try {
     await ElMessageBox.confirm('确定要删除这条记录吗？', '提示', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
       type: 'warning'
     })
-    // 调用删除API
-    ElMessage.success('删除成功')
-    loadRecords()
-  } catch {
-    // 用户取消
+    
+    const { deleteRecord: deleteRecordAPI } = await import('@/api/creation')
+    const res = await deleteRecordAPI(record.id)
+    
+    if (res.code === 200) {
+      ElMessage.success('删除成功')
+      loadRecords()
+      // 如果删除的是当前选中的记录，清除选中状态
+      if (selectedDate.value && selectedDate.value.date) {
+        const dateRecords = selectedDateRecords.value
+        if (dateRecords.length === 1 && dateRecords[0].id === record.id) {
+          selectedDate.value = null
+        }
+      }
+    } else {
+      ElMessage.error(res.message || '删除失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败，请稍后重试')
+    }
   }
+}
+
+// 显示记录详情
+const showRecordDetail = (record) => {
+  const isDark = document.documentElement.classList.contains('dark')
+  const textPrimary = isDark ? '#e5eaf3' : '#303133'
+  const textRegular = isDark ? '#cfd3dc' : '#606266'
+  const textSecondary = isDark ? '#a3a6ad' : '#909399'
+  const bgLight = isDark ? '#363637' : '#f5f7fa'
+  
+  ElMessageBox.alert(
+    record.type === 'TEXT' 
+      ? `<div style="text-align: left; max-height: 400px; overflow-y: auto;">
+           <h3 style="margin-top: 0; color: ${textPrimary};">${record.prompt || '文本创作'}</h3>
+           <div style="margin-top: 16px; padding: 12px; background: ${bgLight}; border-radius: 8px; white-space: pre-wrap; line-height: 1.6; color: ${textRegular};">${record.resultContent || '无内容'}</div>
+           <div style="margin-top: 12px; font-size: 12px; color: ${textSecondary};">
+             创建时间：${formatDateTime(record.createTime)}
+           </div>
+         </div>`
+      : `<div style="text-align: left;">
+           <h3 style="margin-top: 0; color: ${textPrimary};">${record.prompt || '图片生成'}</h3>
+           <div style="margin-top: 16px; text-align: center;">
+             <img src="${record.imageUrl}" alt="生成的图片" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
+           </div>
+           <div style="margin-top: 12px; font-size: 12px; color: ${textSecondary};">
+             创建时间：${formatDateTime(record.createTime)}
+           </div>
+         </div>`,
+    '创作记录详情',
+    {
+      dangerouslyUseHTMLString: true,
+      confirmButtonText: '关闭',
+      customClass: 'record-detail-dialog'
+    }
+  )
+}
+
+// 格式化日期时间
+const formatDateTime = (timeStr) => {
+  if (!timeStr) return ''
+  const date = new Date(timeStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
 const loadRecords = async () => {
@@ -351,17 +437,34 @@ onMounted(() => {
   max-width: 1400px;
   margin: 0 auto;
   min-height: calc(100vh - 60px);
+  background: var(--bg-color);
+  transition: background-color 0.3s ease;
 }
 
 :deep(.el-card) {
   border-radius: 12px;
-  border: none;
+  border: 1px solid var(--border-light);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: var(--card-bg);
   transition: all 0.3s ease;
+}
+
+.dark :deep(.el-card) {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 :deep(.el-card:hover) {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.dark :deep(.el-card:hover) {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:deep(.el-card__header) {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-light);
+  transition: all 0.3s ease;
 }
 
 .calendar-header {
@@ -374,6 +477,8 @@ onMounted(() => {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .header-actions {
@@ -387,6 +492,8 @@ onMounted(() => {
   font-weight: 600;
   min-width: 120px;
   text-align: center;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .calendar-content {
@@ -417,10 +524,12 @@ onMounted(() => {
 }
 
 .calendar-wrapper {
-  background: #f5f7fa;
+  background: var(--bg-color);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 30px;
+  border: 1px solid var(--border-light);
+  transition: all 0.3s ease;
 }
 
 .weekdays {
@@ -433,8 +542,9 @@ onMounted(() => {
 .weekday {
   text-align: center;
   font-weight: 600;
-  color: #606266;
+  color: var(--text-regular);
   padding: 10px;
+  transition: color 0.3s ease;
 }
 
 .calendar-grid {
@@ -444,18 +554,24 @@ onMounted(() => {
 }
 
 .calendar-day {
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   padding: 10px;
   min-height: 80px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   border: 2px solid transparent;
+  color: var(--text-primary);
 }
 
 .calendar-day:hover {
-  background: #ecf5ff;
-  border-color: #409eff;
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.dark .calendar-day:hover {
+  background: rgba(102, 126, 234, 0.2);
 }
 
 .calendar-day.other-month {
@@ -463,19 +579,28 @@ onMounted(() => {
 }
 
 .calendar-day.today {
-  background: #ecf5ff;
-  border-color: #409eff;
+  background: rgba(102, 126, 234, 0.15);
+  border-color: #667eea;
   font-weight: 600;
 }
 
+.dark .calendar-day.today {
+  background: rgba(102, 126, 234, 0.25);
+}
+
 .calendar-day.has-records {
-  background: #f0f9ff;
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.dark .calendar-day.has-records {
+  background: rgba(102, 126, 234, 0.15);
 }
 
 .calendar-day.selected {
-  background: #409eff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border-color: #409eff;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .day-number {
@@ -494,7 +619,7 @@ onMounted(() => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #409eff;
+  background: #667eea;
 }
 
 .calendar-day.selected .record-dot {
@@ -503,7 +628,8 @@ onMounted(() => {
 
 .record-count {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .calendar-day.selected .record-count {
@@ -518,6 +644,8 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 20px;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .records-list {
@@ -526,13 +654,23 @@ onMounted(() => {
   gap: 15px;
 }
 
+:deep(.record-item .el-card) {
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+}
+
 .record-item {
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
 .record-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dark .record-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .record-header {
@@ -544,7 +682,8 @@ onMounted(() => {
 
 .record-time {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 .record-content {
@@ -552,9 +691,10 @@ onMounted(() => {
 }
 
 .record-text {
-  color: #606266;
+  color: var(--text-regular);
   line-height: 1.6;
   margin: 0;
+  transition: color 0.3s ease;
 }
 
 .record-actions {
