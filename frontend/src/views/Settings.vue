@@ -27,10 +27,11 @@
                   </div>
                   <el-upload
                     class="avatar-uploader"
-                    action=""
+                    :auto-upload="false"
                     :show-file-list="false"
                     :before-upload="beforeAvatarUpload"
-                    :on-success="handleAvatarSuccess"
+                    :on-change="handleAvatarChange"
+                    accept="image/jpeg,image/png"
                   >
                     <el-button size="small" type="primary">选择图片</el-button>
                   </el-upload>
@@ -44,8 +45,9 @@
                 <el-input v-model="profileForm.username" placeholder="请输入用户名" />
               </el-form-item>
 
-              <el-form-item label="邮箱" prop="email">
-                <el-input v-model="profileForm.email" placeholder="请输入邮箱地址" />
+              <el-form-item label="邮箱">
+                <el-input v-model="profileForm.email" disabled placeholder="邮箱地址" />
+                <div class="form-item-tip">邮箱地址不可修改</div>
               </el-form-item>
 
               <el-form-item label="昵称">
@@ -168,21 +170,10 @@
 
             <div class="preference-item">
               <div class="preference-info">
-                <div class="preference-title">语言</div>
-                <div class="preference-desc">选择界面语言</div>
-              </div>
-              <el-select v-model="preferences.language" style="width: 120px">
-                <el-option label="中文" value="zh-CN" />
-                <el-option label="English" value="en-US" />
-              </el-select>
-            </div>
-
-            <div class="preference-item">
-              <div class="preference-info">
                 <div class="preference-title">自动保存</div>
                 <div class="preference-desc">创作时自动保存草稿</div>
               </div>
-              <el-switch v-model="preferences.autoSave" />
+              <el-switch v-model="preferences.autoSave" @change="handleAutoSaveChange" />
             </div>
           </div>
 
@@ -303,6 +294,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Camera, Monitor } from '@element-plus/icons-vue'
+import { updateProfile, updateAvatar, changePassword as changePasswordAPI, updatePreferences, getPreferences } from '@/api/user'
 
 const activeTab = ref('profile')
 
@@ -320,10 +312,6 @@ const profileRules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 2, max: 20, message: '用户名长度为2-20位', trigger: 'blur' }
-  ],
-  email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
   ]
 }
 
@@ -367,7 +355,6 @@ const changingPassword = ref(false)
 // 偏好设置
 const preferences = reactive({
   darkMode: false,
-  language: 'zh-CN',
   autoSave: true,
   defaultStyle: 'humor',
   defaultSize: 'douyin',
@@ -400,23 +387,46 @@ const saveProfile = async () => {
 
     savingProfile.value = true
 
-    // 这里应该调用更新用户信息的API
-    // const res = await updateUserProfile(profileForm)
-
-    // 模拟保存成功
-    setTimeout(() => {
-      ElMessage.success('个人信息保存成功')
+    try {
+      // 调用后端API更新用户信息
+      const res = await updateProfile({
+        username: profileForm.username
+      })
+      
+      if (res.code === 200) {
+        // 更新localStorage中的用户信息
+        const userInfo = localStorage.getItem('userInfo')
+        if (userInfo) {
+          try {
+            const user = JSON.parse(userInfo)
+            user.username = profileForm.username
+            localStorage.setItem('userInfo', JSON.stringify(user))
+            // 触发自定义事件，通知Layout组件更新
+            window.dispatchEvent(new Event('userInfoUpdated'))
+          } catch (e) {
+            console.error('更新本地用户信息失败:', e)
+          }
+        }
+        
+        ElMessage.success('个人信息保存成功')
+      } else {
+        ElMessage.error(res.message || '保存失败')
+      }
+    } catch (error) {
+      console.error('保存失败:', error)
+      ElMessage.error(error.response?.data?.message || '保存失败，请重试')
+    } finally {
       savingProfile.value = false
-    }, 1000)
+    }
 
   } catch (error) {
-    console.error('保存失败:', error)
+    console.error('验证失败:', error)
     savingProfile.value = false
   }
 }
 
 const beforeAvatarUpload = (file) => {
-  const isValidType = ['image/jpeg', 'image/png'].includes(file.type)
+  const isValidType = ['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)
   const isValidSize = file.size / 1024 / 1024 < 2
 
   if (!isValidType) {
@@ -429,13 +439,64 @@ const beforeAvatarUpload = (file) => {
     return false
   }
 
-  return true
+  return false // 阻止自动上传，手动处理
 }
 
-const handleAvatarSuccess = (response, file) => {
-  // 这里应该处理上传成功的逻辑
-  profileForm.avatar = URL.createObjectURL(file.raw)
-  ElMessage.success('头像上传成功')
+const handleAvatarChange = async (file) => {
+  if (!file.raw) return
+  
+  // 验证文件
+  const isValidType = ['image/jpeg', 'image/png', 'image/jpg'].includes(file.raw.type)
+  const isValidSize = file.raw.size / 1024 / 1024 < 2
+
+  if (!isValidType) {
+    ElMessage.error('头像必须是 JPG 或 PNG 格式!')
+    return
+  }
+
+  if (!isValidSize) {
+    ElMessage.error('头像大小不能超过 2MB!')
+    return
+  }
+
+  // 使用FileReader读取文件并转换为base64
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    try {
+      const base64 = e.target.result
+      
+      // 调用后端API更新头像
+      const res = await updateAvatar({ avatar: base64 })
+      if (res.code === 200) {
+        profileForm.avatar = base64
+        
+        // 更新localStorage中的用户信息
+        const userInfo = localStorage.getItem('userInfo')
+        if (userInfo) {
+          try {
+            const user = JSON.parse(userInfo)
+            user.avatar = base64
+            localStorage.setItem('userInfo', JSON.stringify(user))
+            // 触发自定义事件，通知Layout组件更新头像
+            window.dispatchEvent(new Event('userInfoUpdated'))
+          } catch (e) {
+            console.error('更新本地用户信息失败:', e)
+          }
+        }
+        
+        ElMessage.success('头像更新成功')
+      } else {
+        ElMessage.error(res.message || '头像更新失败')
+      }
+    } catch (error) {
+      console.error('头像更新失败:', error)
+      ElMessage.error('头像更新失败，请重试')
+    }
+  }
+  reader.onerror = () => {
+    ElMessage.error('头像读取失败，请重试')
+  }
+  reader.readAsDataURL(file.raw)
 }
 
 const changePassword = async () => {
@@ -446,70 +507,186 @@ const changePassword = async () => {
 
     changingPassword.value = true
 
-    // 这里应该调用修改密码的API
-    // const res = await changeUserPassword(passwordForm)
-
-    // 模拟修改成功
-    setTimeout(() => {
-      ElMessage.success('密码修改成功，请重新登录')
-      passwordForm.currentPassword = ''
-      passwordForm.newPassword = ''
-      passwordForm.confirmPassword = ''
+    try {
+      // 调用后端API修改密码
+      const res = await changePasswordAPI({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      })
+      
+      if (res.code === 200) {
+        ElMessage.success('密码修改成功，请重新登录')
+        passwordForm.currentPassword = ''
+        passwordForm.newPassword = ''
+        passwordForm.confirmPassword = ''
+        
+        // 可以选择清除token，强制用户重新登录
+        // localStorage.removeItem('token')
+        // setTimeout(() => {
+        //   window.location.href = '/login'
+        // }, 1500)
+      } else {
+        ElMessage.error(res.message || '密码修改失败')
+      }
+    } catch (error) {
+      console.error('密码修改失败:', error)
+      ElMessage.error(error.response?.data?.message || '密码修改失败，请重试')
+    } finally {
       changingPassword.value = false
-    }, 1000)
+    }
 
   } catch (error) {
-    console.error('密码修改失败:', error)
+    console.error('验证失败:', error)
     changingPassword.value = false
   }
 }
 
 const toggleDarkMode = (value) => {
-  // 这里可以实现深色模式切换
+  // 实现深色模式切换
   if (value) {
     document.documentElement.classList.add('dark')
+    // 保存到localStorage
+    localStorage.setItem('darkMode', 'true')
   } else {
     document.documentElement.classList.remove('dark')
+    localStorage.setItem('darkMode', 'false')
+  }
+  
+  // 立即保存偏好设置
+  localStorage.setItem('userPreferences', JSON.stringify(preferences))
+}
+
+
+const handleAutoSaveChange = (value) => {
+  // 立即保存自动保存设置
+  localStorage.setItem('userPreferences', JSON.stringify(preferences))
+  if (value) {
+    ElMessage.success('已开启自动保存')
+  } else {
+    ElMessage.info('已关闭自动保存')
   }
 }
 
 const savePreferences = async () => {
   savingPreferences.value = true
 
-  // 这里应该调用保存偏好设置的API
-  // const res = await saveUserPreferences(preferences)
+  try {
+    // 调用后端API保存偏好设置
+    const res = await updatePreferences({ preferences: preferences })
+    
+    if (res && res.code === 200) {
+      // 同时保存到localStorage作为备份
+      localStorage.setItem('userPreferences', JSON.stringify(preferences))
+      
+      // 应用深色模式
+      if (preferences.darkMode) {
+        document.documentElement.classList.add('dark')
+        localStorage.setItem('darkMode', 'true')
+      } else {
+        document.documentElement.classList.remove('dark')
+        localStorage.setItem('darkMode', 'false')
+      }
 
-  // 模拟保存成功
-  setTimeout(() => {
-    ElMessage.success('偏好设置保存成功')
+      ElMessage.success('偏好设置保存成功')
+    } else {
+      // 如果后端保存失败，至少保存到localStorage
+      localStorage.setItem('userPreferences', JSON.stringify(preferences))
+      ElMessage.warning('偏好设置已保存到本地，但同步到服务器失败')
+    }
+  } catch (error) {
+    console.error('保存偏好设置失败:', error)
+    // 即使后端失败，也保存到localStorage
+    localStorage.setItem('userPreferences', JSON.stringify(preferences))
+    
+    // 应用深色模式（即使后端失败也要应用）
+    if (preferences.darkMode) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('darkMode', 'true')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('darkMode', 'false')
+    }
+    
+    // 如果是404错误，说明后端接口可能未实现，只保存到本地
+    if (error.response?.status === 404) {
+      ElMessage.warning('偏好设置已保存到本地（后端接口未实现）')
+    } else {
+      ElMessage.error(error.response?.data?.message || '保存失败，已保存到本地')
+    }
+  } finally {
     savingPreferences.value = false
-  }, 500)
+  }
 }
 
 const exportCreations = async () => {
   exportingCreations.value = true
 
-  // 这里应该调用导出创作数据的API
-  // const res = await exportUserCreations()
+  try {
+    // 这里应该调用导出创作数据的API
+    // const res = await exportUserCreations()
+    
+    // 模拟导出：创建JSON文件并下载
+    const exportData = {
+      exportTime: new Date().toISOString(),
+      data: '创作记录数据（实际应从API获取）'
+    }
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `创作记录_${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
 
-  // 模拟导出
-  setTimeout(() => {
-    ElMessage.success('创作数据导出成功，请检查下载')
+    setTimeout(() => {
+      ElMessage.success('创作数据导出成功，请检查下载')
+      exportingCreations.value = false
+    }, 500)
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败，请稍后重试')
     exportingCreations.value = false
-  }, 1500)
+  }
 }
 
 const exportStatistics = async () => {
   exportingStatistics.value = true
 
-  // 这里应该调用导出统计数据的API
-  // const res = await exportUserStatistics()
+  try {
+    // 这里应该调用导出统计数据的API
+    // const res = await exportUserStatistics()
+    
+    // 模拟导出：创建JSON文件并下载
+    const exportData = {
+      exportTime: new Date().toISOString(),
+      statistics: {
+        totalCreations: 0,
+        textCreations: 0,
+        imageCreations: 0,
+        lastActiveTime: new Date().toISOString()
+      }
+    }
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `使用统计_${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
 
-  // 模拟导出
-  setTimeout(() => {
-    ElMessage.success('统计数据导出成功，请检查下载')
+    setTimeout(() => {
+      ElMessage.success('统计数据导出成功，请检查下载')
+      exportingStatistics.value = false
+    }, 500)
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败，请稍后重试')
     exportingStatistics.value = false
-  }, 1000)
+  }
 }
 
 const clearAllData = async () => {
@@ -559,15 +736,28 @@ const deleteAccount = async () => {
 
     deletingAccount.value = true
 
-    // 这里应该调用删除账户的API
-    // const res = await deleteUserAccount()
-
-    // 模拟删除成功
-    setTimeout(() => {
+    try {
+      // 这里应该调用删除账户的API
+      // const res = await deleteUserAccount()
+      
+      // 模拟删除成功
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // 清除本地存储并跳转到登录页
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      localStorage.removeItem('userPreferences')
+      
       ElMessage.success('账户删除成功')
-      // 这里应该跳转到登录页并清除本地存储
+      
+      // 跳转到登录页
+      window.location.href = '/login'
+    } catch (apiError) {
+      console.error('删除账户失败:', apiError)
+      ElMessage.error('删除账户失败，请稍后重试')
+    } finally {
       deletingAccount.value = false
-    }, 2000)
+    }
 
   } catch (error) {
     if (error !== 'cancel') {
@@ -579,14 +769,14 @@ const deleteAccount = async () => {
 }
 
 // 初始化数据
-onMounted(() => {
-  // 从localStorage或其他地方加载用户信息
+onMounted(async () => {
+  // 从localStorage加载用户信息
   const userInfo = localStorage.getItem('userInfo')
   if (userInfo) {
     try {
       const user = JSON.parse(userInfo)
       profileForm.username = user.username || ''
-      profileForm.email = user.email || ''
+      profileForm.email = user.email || '' // 邮箱从登录信息中获取，不可编辑
       profileForm.nickname = user.nickname || ''
       profileForm.bio = user.bio || ''
       profileForm.gender = user.gender || 'private'
@@ -596,15 +786,47 @@ onMounted(() => {
     }
   }
 
-  // 加载偏好设置
-  const userPreferences = localStorage.getItem('userPreferences')
-  if (userPreferences) {
-    try {
-      const prefs = JSON.parse(userPreferences)
-      Object.assign(preferences, prefs)
-    } catch (e) {
-      console.error('加载偏好设置失败:', e)
+  // 从localStorage加载偏好设置的辅助函数
+  const loadPreferencesFromLocalStorage = () => {
+    const userPreferences = localStorage.getItem('userPreferences')
+    if (userPreferences) {
+      try {
+        const prefs = JSON.parse(userPreferences)
+        Object.assign(preferences, prefs)
+      } catch (e) {
+        console.error('从localStorage加载偏好设置失败:', e)
+      }
     }
+  }
+  
+  // 加载偏好设置（优先从后端加载，如果失败则从localStorage加载）
+  // 注意：如果数据库还没有preferences列，API会失败，此时使用localStorage
+  try {
+    const res = await getPreferences()
+    if (res && res.code === 200 && res.data) {
+      // 从后端加载偏好设置
+      Object.assign(preferences, res.data)
+    } else {
+      // 如果后端没有数据，从localStorage加载
+      loadPreferencesFromLocalStorage()
+    }
+  } catch (error) {
+    // 如果后端加载失败（可能是接口未实现、数据库未更新或404错误），从localStorage加载
+    // 不显示错误消息，静默降级到localStorage
+    if (error.response?.status !== 404) {
+      console.warn('从后端加载偏好设置失败，使用localStorage:', error)
+    }
+    loadPreferencesFromLocalStorage()
+  }
+  
+  // 应用深色模式（如果已设置）
+  const darkMode = localStorage.getItem('darkMode')
+  if (darkMode === 'true' || preferences.darkMode) {
+    preferences.darkMode = true
+    document.documentElement.classList.add('dark')
+  } else if (darkMode === 'false' || preferences.darkMode === false) {
+    preferences.darkMode = false
+    document.documentElement.classList.remove('dark')
   }
 })
 </script>
@@ -631,15 +853,17 @@ onMounted(() => {
 
 .page-subtitle {
   font-size: 16px;
-  color: #909399;
+  color: var(--text-secondary);
   margin: 0;
+  transition: color 0.3s ease;
 }
 
 .settings-content {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  transition: background-color 0.3s ease;
 }
 
 .settings-tabs :deep(.el-tabs__header) {
@@ -692,9 +916,10 @@ onMounted(() => {
 }
 
 .section-desc {
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 14px;
   margin: 0;
+  transition: color 0.3s ease;
 }
 
 /* 头像上传 */
@@ -746,12 +971,21 @@ onMounted(() => {
 }
 
 .upload-tips {
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 12px;
+  transition: color 0.3s ease;
 }
 
 .upload-tips p {
   margin: 4px 0;
+}
+
+.form-item-tip {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+  transition: color 0.3s ease;
 }
 
 /* 偏好设置 */
@@ -760,7 +994,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
+  transition: border-color 0.3s ease;
 }
 
 .preference-item:last-child {
@@ -773,13 +1008,15 @@ onMounted(() => {
 
 .preference-title {
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 4px;
+  transition: color 0.3s ease;
 }
 
 .preference-desc {
-  color: #909399;
+  color: var(--text-secondary);
   font-size: 14px;
+  transition: color 0.3s ease;
 }
 
 .preference-actions {

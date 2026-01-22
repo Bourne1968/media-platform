@@ -21,16 +21,14 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: Login
+    component: Login,
+    meta: { guestOnly: true }
   },
   {
     path: '/register',
     name: 'Register',
-    component: Register
-  },
-  {
-    path: '/',
-    redirect: '/home'
+    component: Register,
+    meta: { guestOnly: true }
   },
   {
     path: '/home',
@@ -90,21 +88,36 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-
-  // 如果是访客专用页面且已登录，跳转到首页
-  if (to.meta.guestOnly && token) {
-    next('/home')
+  
+  // 定义允许未登录访问的页面
+  const guestPaths = ['/', '/login', '/register']
+  const isGuestPath = guestPaths.includes(to.path)
+  
+  // 如果已登录用户访问访客页面，跳转到首页
+  if (isGuestPath && token) {
+    if (to.path === '/') {
+      next('/home')
+    } else {
+      // 已登录用户访问登录/注册页，跳转到首页
+      next('/home')
+    }
     return
   }
-
-  // 需要认证的页面检查
-  if (to.meta.requiresAuth && !token) {
-    next('/login')
+  
+  // 如果未登录用户访问需要认证的页面，跳转到landing页面
+  if (!isGuestPath && !token) {
+    // 未登录用户只能访问landing页面
+    next('/')
     return
   }
-
+  
   // 管理员页面检查
   if (to.meta.requiresAdmin) {
+    if (!token) {
+      next('/')
+      return
+    }
+    
     const userInfo = localStorage.getItem('userInfo')
     if (userInfo) {
       try {
@@ -115,14 +128,20 @@ router.beforeEach((to, from, next) => {
           next('/workbench')
         }
       } catch (e) {
-        next('/login')
+        next('/')
       }
     } else {
-      next('/login')
+      next('/')
     }
     return
   }
-
+  
+  // 需要认证的页面，确保有token
+  if (to.meta.requiresAuth && !token) {
+    next('/')
+    return
+  }
+  
   next()
 })
 

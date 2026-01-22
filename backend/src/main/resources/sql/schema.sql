@@ -4,13 +4,16 @@
 CREATE TABLE IF NOT EXISTS `user` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '用户ID',
     `username` VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
+    `email` VARCHAR(100) DEFAULT NULL COMMENT '邮箱',
     `password` VARCHAR(255) NOT NULL COMMENT '密码（加密存储）',
     `role` VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '角色：ADMIN（管理员）/USER（普通用户）',
-    `avatar` VARCHAR(500) DEFAULT NULL COMMENT '头像URL',
+    `avatar` LONGTEXT DEFAULT NULL COMMENT '头像（base64或URL）',
+    `preferences` JSON DEFAULT NULL COMMENT '用户偏好设置（JSON格式）',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
-    INDEX `idx_username` (`username`)
+    INDEX `idx_username` (`username`),
+    UNIQUE INDEX `idx_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- 创作记录表

@@ -32,6 +32,11 @@ public class User {
     private String username;
     
     /**
+     * 邮箱
+     */
+    private String email;
+    
+    /**
      * 密码（加密存储）
      */
     private String password;
@@ -45,6 +50,11 @@ public class User {
      * 头像URL
      */
     private String avatar;
+    
+    /**
+     * 用户偏好设置（JSON格式）
+     */
+    private String preferences;
     
     /**
      * 创建时间

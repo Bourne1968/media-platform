@@ -56,7 +56,7 @@
               <div class="topic-header">
                 <div class="topic-rank">#{{ topic.rank }}</div>
                 <div class="topic-heat">
-                  <el-icon><Fire /></el-icon>
+                  <el-icon><TrendCharts /></el-icon>
                   <span>{{ topic.heatValue }}</span>
                 </div>
               </div>
@@ -247,37 +247,37 @@
           <!-- 案例列表 -->
           <div class="cases-grid">
             <div
-              v-for="case in filteredCases"
-              :key="case.id"
+              v-for="caseItem in filteredCases"
+              :key="caseItem.id"
               class="case-card"
-              @click="viewCase(case)"
+              @click="viewCase(caseItem)"
             >
               <div class="case-cover">
-                <img :src="case.cover" :alt="case.title" />
+                <img :src="caseItem.cover" :alt="caseItem.title" />
                 <div class="case-platform-tag">
-                  <el-tag size="small" :type="getPlatformType(case.platform)">
-                    {{ case.platform }}
+                  <el-tag size="small" :type="getPlatformType(caseItem.platform)">
+                    {{ caseItem.platform }}
                   </el-tag>
                 </div>
                 <div class="case-stats">
                   <div class="stat">
                     <el-icon><VideoPlay /></el-icon>
-                    {{ case.views }}
+                    {{ caseItem.views }}
                   </div>
                   <div class="stat">
-                    <el-icon><Like /></el-icon>
-                    {{ case.likes }}
+                    <el-icon><Star /></el-icon>
+                    {{ caseItem.likes }}
                   </div>
                 </div>
               </div>
               <div class="case-content">
-                <h4 class="case-title">{{ case.title }}</h4>
-                <p class="case-desc">{{ case.description }}</p>
+                <h4 class="case-title">{{ caseItem.title }}</h4>
+                <p class="case-desc">{{ caseItem.description }}</p>
                 <div class="case-analysis">
                   <div class="analysis-tag">
                     <span class="label">爆款要素：</span>
                     <el-tag
-                      v-for="element in case.successElements"
+                      v-for="element in caseItem.successElements"
                       :key="element"
                       size="mini"
                       type="success"
@@ -287,19 +287,19 @@
                   </div>
                   <div class="case-author">
                     <span class="label">创作者：</span>
-                    <span>{{ case.author }}</span>
+                    <span>{{ caseItem.author }}</span>
                   </div>
                   <div class="case-time">
                     <span class="label">发布时间：</span>
-                    <span>{{ case.publishTime }}</span>
+                    <span>{{ caseItem.publishTime }}</span>
                   </div>
                 </div>
               </div>
               <div class="case-footer">
-                <el-button size="small" @click.stop="analyzeCase(case)">
+                <el-button size="small" @click.stop="analyzeCase(caseItem)">
                   分析要素
                 </el-button>
-                <el-button type="primary" size="small" @click.stop="useCaseAsTemplate(case)">
+                <el-button type="primary" size="small" @click.stop="useCaseAsTemplate(caseItem)">
                   用作模板
                 </el-button>
               </div>
@@ -319,13 +319,14 @@ import {
   MagicStick,
   Refresh,
   Search,
-  Fire,
+  TrendCharts,
   View,
   ChatDotRound,
   Clock,
   VideoPlay,
-  Like
+  Star
 } from '@element-plus/icons-vue'
+import { generateText } from '@/api/ai'
 
 const router = useRouter()
 const activeTab = ref('topics')
@@ -391,6 +392,90 @@ const topics = ref([
     discussions: '287',
     trend: '稳定',
     tags: ['B站', '标题优化', '视频标题']
+  },
+  {
+    id: 6,
+    rank: 6,
+    title: '社交媒体内容策略优化',
+    description: '如何根据不同平台特点制定有效的内容策略',
+    heatValue: '85.6',
+    heatLevel: 'medium',
+    views: '8500',
+    discussions: '245',
+    trend: '上升中',
+    tags: ['社交媒体', '内容策略', '平台运营']
+  },
+  {
+    id: 7,
+    rank: 7,
+    title: '内容创作者变现路径',
+    description: '内容创作者如何通过多种方式实现变现',
+    heatValue: '83.2',
+    heatLevel: 'medium',
+    views: '7200',
+    discussions: '198',
+    trend: '稳定',
+    tags: ['内容变现', '创作者经济', '商业模式']
+  },
+  {
+    id: 8,
+    rank: 8,
+    title: '直播带货话术技巧',
+    description: '掌握直播带货的核心话术，提升转化率',
+    heatValue: '81.5',
+    heatLevel: 'medium',
+    views: '6800',
+    discussions: '176',
+    trend: '新话题',
+    tags: ['直播带货', '话术技巧', '电商运营']
+  },
+  {
+    id: 9,
+    rank: 9,
+    title: '品牌故事讲述方法',
+    description: '如何通过故事化内容传递品牌价值',
+    heatValue: '79.8',
+    heatLevel: 'medium',
+    views: '6100',
+    discussions: '154',
+    trend: '稳定',
+    tags: ['品牌故事', '内容营销', '品牌建设']
+  },
+  {
+    id: 10,
+    rank: 10,
+    title: '用户增长策略实战',
+    description: '从0到1的用户增长策略和实战案例',
+    heatValue: '77.3',
+    heatLevel: 'medium',
+    views: '5500',
+    discussions: '132',
+    trend: '上升中',
+    tags: ['用户增长', '运营策略', '实战案例']
+  },
+  {
+    id: 11,
+    rank: 11,
+    title: '内容数据分析与优化',
+    description: '如何通过数据分析优化内容效果',
+    heatValue: '75.1',
+    heatLevel: 'medium',
+    views: '4900',
+    discussions: '118',
+    trend: '稳定',
+    tags: ['数据分析', '内容优化', '效果评估']
+  },
+  {
+    id: 12,
+    rank: 12,
+    title: '跨平台内容分发策略',
+    description: '如何将同一内容适配不同平台并最大化传播',
+    heatValue: '73.6',
+    heatLevel: 'medium',
+    views: '4300',
+    discussions: '105',
+    trend: '新话题',
+    tags: ['内容分发', '多平台运营', '传播策略']
   }
 ])
 
@@ -525,29 +610,29 @@ const filteredCases = computed(() => {
 
   // 按类型筛选
   if (caseFilter.value !== 'all') {
-    filtered = filtered.filter(case => case.type === caseFilter.value)
+    filtered = filtered.filter(caseItem => caseItem.type === caseFilter.value)
   }
 
   // 按平台筛选
   if (casePlatform.value !== 'all') {
-    filtered = filtered.filter(case => {
+    filtered = filtered.filter(caseItem => {
       const platformMap = {
         douyin: '抖音',
         xiaohongshu: '小红书',
         bilibili: 'B站',
         wechat: '公众号'
       }
-      return case.platform === platformMap[casePlatform.value]
+      return caseItem.platform === platformMap[casePlatform.value]
     })
   }
 
   // 按关键词搜索
   if (caseSearch.value.trim()) {
     const searchTerm = caseSearch.value.toLowerCase()
-    filtered = filtered.filter(case =>
-      case.title.toLowerCase().includes(searchTerm) ||
-      case.description.toLowerCase().includes(searchTerm) ||
-      case.successElements.some(element => element.toLowerCase().includes(searchTerm))
+    filtered = filtered.filter(caseItem =>
+      caseItem.title.toLowerCase().includes(searchTerm) ||
+      caseItem.description.toLowerCase().includes(searchTerm) ||
+      caseItem.successElements.some(element => element.toLowerCase().includes(searchTerm))
     )
   }
 
@@ -571,11 +656,207 @@ const filteredCases = computed(() => {
 // 方法
 const refreshTopics = async () => {
   loadingTopics.value = true
-  // 这里应该调用API获取最新话题数据
-  setTimeout(() => {
-    ElMessage.success('话题数据已刷新')
+  try {
+    // 通过AI获取最新的热点话题
+    const prompt = `请为我生成15个当前最热门的社交媒体内容创作话题。要求：
+1. 话题要贴近当前热点和趋势，具有时效性
+2. 每个话题包含：标题、简短描述（30字以内）、热度值（90-99之间）、热度等级（high/medium）、浏览量（如"2.1万"）、讨论数（如"856"）、趋势（上升中/稳定/新话题）、相关标签（3-4个）
+3. 请以JSON格式返回，格式如下：
+[
+  {
+    "title": "话题标题",
+    "description": "话题描述",
+    "heatValue": "98.5",
+    "heatLevel": "high",
+    "views": "2.1万",
+    "discussions": "856",
+    "trend": "上升中",
+    "tags": ["标签1", "标签2", "标签3"]
+  }
+]
+请直接返回JSON数组，不要其他说明文字。`
+
+    const res = await generateText({
+      prompt: prompt,
+      style: null
+    })
+
+    if (res.code === 200 && res.data && res.data.content) {
+      try {
+        // 尝试解析AI返回的JSON
+        let content = res.data.content.trim()
+        
+        // 如果返回的内容包含markdown代码块，提取JSON部分
+        const jsonMatch = content.match(/\[[\s\S]*\]/)
+        if (jsonMatch) {
+          content = jsonMatch[0]
+        }
+        
+        const aiTopics = JSON.parse(content)
+        
+        // 转换为前端需要的格式
+        const newTopics = aiTopics.slice(0, 15).map((topic, index) => ({
+          id: Date.now() + index,
+          rank: index + 1,
+          title: topic.title || `话题${index + 1}`,
+          description: topic.description || '',
+          heatValue: topic.heatValue || (95 - index * 2).toFixed(1),
+          heatLevel: topic.heatLevel || (index < 3 ? 'high' : 'medium'),
+          views: topic.views || `${(Math.random() * 5 + 1).toFixed(1)}万`,
+          discussions: topic.discussions || Math.floor(Math.random() * 1000 + 100).toString(),
+          trend: topic.trend || (index % 3 === 0 ? '上升中' : index % 3 === 1 ? '稳定' : '新话题'),
+          tags: topic.tags || ['内容创作', '社交媒体', '热点话题']
+        }))
+        
+        topics.value = newTopics
+        ElMessage.success(`成功获取${newTopics.length}个最新热点话题`)
+      } catch (parseError) {
+        console.error('解析AI返回数据失败:', parseError, '原始内容:', res.data.content)
+        // 如果解析失败，使用备用数据
+        generateFallbackTopics()
+        ElMessage.warning('AI数据解析失败，已使用备用数据')
+      }
+    } else {
+      // 如果AI调用失败，使用备用数据
+      generateFallbackTopics()
+      ElMessage.warning('AI获取失败，已使用备用数据')
+    }
+  } catch (error) {
+    console.error('刷新话题失败:', error)
+    // 如果出错，使用备用数据
+    generateFallbackTopics()
+    ElMessage.error('刷新失败，已使用备用数据')
+  } finally {
     loadingTopics.value = false
-  }, 1500)
+  }
+}
+
+// 生成备用话题数据（当AI调用失败时使用）
+const generateFallbackTopics = () => {
+  const fallbackTopics = [
+    {
+      id: Date.now(),
+      rank: 1,
+      title: 'AI创作工具最新趋势',
+      description: '探索AI在内容创作领域的最新应用和发展趋势',
+      heatValue: '99.2',
+      heatLevel: 'high',
+      views: '3.5万',
+      discussions: '1200',
+      trend: '上升中',
+      tags: ['AI工具', '内容创作', '趋势分析']
+    },
+    {
+      id: Date.now() + 1,
+      rank: 2,
+      title: '短视频营销策略',
+      description: '如何通过短视频营销提升品牌影响力和转化率',
+      heatValue: '96.8',
+      heatLevel: 'high',
+      views: '2.8万',
+      discussions: '980',
+      trend: '稳定',
+      tags: ['短视频', '营销策略', '品牌推广']
+    },
+    {
+      id: Date.now() + 2,
+      rank: 3,
+      title: '内容创作效率提升技巧',
+      description: '实用的内容创作工具和方法，帮助提升创作效率',
+      heatValue: '94.5',
+      heatLevel: 'medium',
+      views: '2.2万',
+      discussions: '756',
+      trend: '上升中',
+      tags: ['效率提升', '内容创作', '工具推荐']
+    },
+    {
+      id: Date.now() + 3,
+      rank: 4,
+      title: '社交媒体封面设计指南',
+      description: '不同平台封面设计的最佳实践和设计原则',
+      heatValue: '91.3',
+      heatLevel: 'medium',
+      views: '1.9万',
+      discussions: '623',
+      trend: '新话题',
+      tags: ['封面设计', '社交媒体', '设计指南']
+    },
+    {
+      id: Date.now() + 4,
+      rank: 5,
+      title: '爆款标题写作公式',
+      description: '掌握这些标题写作技巧，让你的内容获得更多点击',
+      heatValue: '88.7',
+      heatLevel: 'medium',
+      views: '1.6万',
+      discussions: '512',
+      trend: '稳定',
+      tags: ['标题写作', '内容优化', '点击率']
+    },
+    {
+      id: Date.now() + 5,
+      rank: 6,
+      title: '内容创作者IP打造',
+      description: '如何打造个人IP，提升影响力和商业价值',
+      heatValue: '86.4',
+      heatLevel: 'medium',
+      views: '1.4万',
+      discussions: '445',
+      trend: '上升中',
+      tags: ['IP打造', '个人品牌', '影响力']
+    },
+    {
+      id: Date.now() + 6,
+      rank: 7,
+      title: '跨平台内容分发策略',
+      description: '如何将同一内容适配不同平台并最大化传播',
+      heatValue: '84.1',
+      heatLevel: 'medium',
+      views: '1.2万',
+      discussions: '378',
+      trend: '稳定',
+      tags: ['内容分发', '多平台运营', '传播策略']
+    },
+    {
+      id: Date.now() + 7,
+      rank: 8,
+      title: '用户增长与留存技巧',
+      description: '通过内容运营实现用户增长和长期留存',
+      heatValue: '82.3',
+      heatLevel: 'medium',
+      views: '1.1万',
+      discussions: '332',
+      trend: '新话题',
+      tags: ['用户增长', '用户留存', '运营技巧']
+    },
+    {
+      id: Date.now() + 8,
+      rank: 9,
+      title: '内容数据分析与优化',
+      description: '如何通过数据分析优化内容效果和传播',
+      heatValue: '80.5',
+      heatLevel: 'medium',
+      views: '9800',
+      discussions: '298',
+      trend: '稳定',
+      tags: ['数据分析', '内容优化', '效果评估']
+    },
+    {
+      id: Date.now() + 9,
+      rank: 10,
+      title: '直播内容策划与执行',
+      description: '如何策划和执行高质量的直播内容',
+      heatValue: '78.9',
+      heatLevel: 'medium',
+      views: '8600',
+      discussions: '267',
+      trend: '上升中',
+      tags: ['直播策划', '内容执行', '直播运营']
+    }
+  ]
+  
+  topics.value = fallbackTopics
 }
 
 const filterTopics = () => {
@@ -611,11 +892,150 @@ const getTagType = (tag) => {
 
 const generateRecommendations = async () => {
   loadingRecommendations.value = true
-  // 这里应该调用AI生成推荐的API
-  setTimeout(() => {
-    ElMessage.success('已为您生成个性化选题推荐')
+  try {
+    // 构建平台和难度描述
+    const platformMap = {
+      douyin: '抖音',
+      xiaohongshu: '小红书',
+      bilibili: 'B站',
+      wechat: '公众号'
+    }
+    const difficultyMap = {
+      easy: '简单',
+      medium: '中等',
+      hard: '挑战'
+    }
+    const typeMap = {
+      general: '通用',
+      personal: '个性化'
+    }
+    
+    const platformText = platformMap[recommendationSettings.platform] || '抖音'
+    const difficultyText = difficultyMap[recommendationSettings.difficulty] || '中等'
+    const typeText = typeMap[recommendationSettings.type] || '通用'
+    
+    // 通过AI生成选题推荐
+    const prompt = `请为我生成10个${typeText}的${platformText}平台内容创作选题推荐。要求：
+1. 选题要具有时效性和吸引力，适合${platformText}平台特点
+2. 难度级别为${difficultyText}
+3. 每个选题包含：标题、描述（50字以内）、评分（4.0-5.0之间）、平台、难度、标签（3-4个）、预计创作时间、预期浏览量
+4. 请以JSON格式返回，格式如下：
+[
+  {
+    "title": "选题标题",
+    "description": "选题描述",
+    "score": 4.8,
+    "platform": "${recommendationSettings.platform}",
+    "difficulty": "${recommendationSettings.difficulty}",
+    "tags": ["标签1", "标签2", "标签3"],
+    "estimatedTime": "2-3小时",
+    "potentialViews": "10-50万"
+  }
+]
+请直接返回JSON数组，不要其他说明文字。`
+
+    const res = await generateText({
+      prompt: prompt,
+      style: null
+    })
+
+    if (res.code === 200 && res.data && res.data.content) {
+      try {
+        // 尝试解析AI返回的JSON
+        let content = res.data.content.trim()
+        
+        // 如果返回的内容包含markdown代码块，提取JSON部分
+        const jsonMatch = content.match(/\[[\s\S]*\]/)
+        if (jsonMatch) {
+          content = jsonMatch[0]
+        }
+        
+        const aiRecommendations = JSON.parse(content)
+        
+        // 转换为前端需要的格式
+        const newRecommendations = aiRecommendations.slice(0, 10).map((rec, index) => ({
+          id: Date.now() + index,
+          title: rec.title || `选题${index + 1}`,
+          description: rec.description || '',
+          score: rec.score || (4.5 + Math.random() * 0.5),
+          platform: rec.platform || recommendationSettings.platform,
+          difficulty: rec.difficulty || recommendationSettings.difficulty,
+          tags: rec.tags || ['内容创作', '选题推荐', '创作灵感'],
+          estimatedTime: rec.estimatedTime || '1-2小时',
+          potentialViews: rec.potentialViews || '5-20万'
+        }))
+        
+        // 根据设置筛选和排序
+        let filtered = newRecommendations
+        if (recommendationSettings.platform && recommendationSettings.platform !== 'all') {
+          filtered = filtered.filter(r => r.platform === recommendationSettings.platform)
+        }
+        if (recommendationSettings.difficulty && recommendationSettings.difficulty !== 'all') {
+          filtered = filtered.filter(r => r.difficulty === recommendationSettings.difficulty)
+        }
+        
+        recommendations.value = filtered.sort((a, b) => b.score - a.score)
+        ElMessage.success(`成功生成${filtered.length}个个性化选题推荐`)
+      } catch (parseError) {
+        console.error('解析AI返回数据失败:', parseError, '原始内容:', res.data.content)
+        // 如果解析失败，使用备用数据
+        generateFallbackRecommendations()
+        ElMessage.warning('AI数据解析失败，已使用备用数据')
+      }
+    } else {
+      // 如果AI调用失败，使用备用数据
+      generateFallbackRecommendations()
+      ElMessage.warning('AI获取失败，已使用备用数据')
+    }
+  } catch (error) {
+    console.error('生成推荐失败:', error)
+    // 如果出错，使用备用数据
+    generateFallbackRecommendations()
+    ElMessage.error('生成推荐失败，已使用备用数据')
+  } finally {
     loadingRecommendations.value = false
-  }, 2000)
+  }
+}
+
+// 生成备用选题推荐数据（当AI调用失败时使用）
+const generateFallbackRecommendations = () => {
+  const fallbackRecommendations = [
+    {
+      id: Date.now(),
+      title: 'AI辅助内容创作实践',
+      description: '探索AI在内容创作中的实际应用场景和效果',
+      score: 4.8,
+      platform: recommendationSettings.platform || 'douyin',
+      difficulty: recommendationSettings.difficulty || 'medium',
+      tags: ['AI工具', '内容创作', '实践案例'],
+      estimatedTime: '2-3小时',
+      potentialViews: '10-50万'
+    },
+    {
+      id: Date.now() + 1,
+      title: '社交媒体内容策略优化',
+      description: '如何根据不同平台特点优化内容策略，提升传播效果',
+      score: 4.6,
+      platform: recommendationSettings.platform || 'xiaohongshu',
+      difficulty: recommendationSettings.difficulty || 'easy',
+      tags: ['社交媒体', '内容策略', '平台优化'],
+      estimatedTime: '1-2小时',
+      potentialViews: '5-20万'
+    },
+    {
+      id: Date.now() + 2,
+      title: '短视频脚本创作技巧',
+      description: '掌握短视频脚本的核心要素，创作出吸引人的内容',
+      score: 4.7,
+      platform: recommendationSettings.platform || 'douyin',
+      difficulty: recommendationSettings.difficulty || 'medium',
+      tags: ['短视频', '脚本创作', '内容技巧'],
+      estimatedTime: '1.5-2.5小时',
+      potentialViews: '8-30万'
+    }
+  ]
+  
+  recommendations.value = fallbackRecommendations
 }
 
 const useRecommendation = (recommendation) => {
@@ -634,27 +1054,168 @@ const viewSimilarTopics = (recommendation) => {
 
 const refreshCases = async () => {
   loadingCases.value = true
-  // 这里应该调用API获取最新案例数据
-  setTimeout(() => {
-    ElMessage.success('案例库已更新')
+  try {
+    // 通过AI获取最新的爆款案例
+    const prompt = `请为我生成12个当前最热门的社交媒体爆款内容案例。要求：
+1. 案例要真实、具有参考价值，涵盖不同平台（抖音、小红书、B站、公众号）
+2. 每个案例包含：标题、描述（40字以内）、平台（抖音/小红书/B站/公众号）、类型（video/short/article）、浏览量（如"125万"）、点赞数（如"8.6万"）、发布时间（如"2024-01-15"）、创作者名称、成功要素（3-4个）
+3. 请以JSON格式返回，格式如下：
+[
+  {
+    "title": "案例标题",
+    "description": "案例描述",
+    "platform": "B站",
+    "type": "video",
+    "views": "125万",
+    "likes": "8.6万",
+    "publishTime": "2024-01-15",
+    "author": "创作者名称",
+    "successElements": ["要素1", "要素2", "要素3"]
+  }
+]
+请直接返回JSON数组，不要其他说明文字。`
+
+    const res = await generateText({
+      prompt: prompt,
+      style: null
+    })
+
+    if (res.code === 200 && res.data && res.data.content) {
+      try {
+        // 尝试解析AI返回的JSON
+        let content = res.data.content.trim()
+        
+        // 如果返回的内容包含markdown代码块，提取JSON部分
+        const jsonMatch = content.match(/\[[\s\S]*\]/)
+        if (jsonMatch) {
+          content = jsonMatch[0]
+        }
+        
+        const aiCases = JSON.parse(content)
+        
+        // 转换为前端需要的格式
+        const newCases = aiCases.slice(0, 12).map((caseItem, index) => {
+          // 根据平台生成占位图颜色
+          const platformColors = {
+            '抖音': 'f093fb',
+            '小红书': 'ff6b6b',
+            'B站': '667eea',
+            '公众号': '4facfe'
+          }
+          const color = platformColors[caseItem.platform] || '667eea'
+          
+          return {
+            id: Date.now() + index,
+            title: caseItem.title || `案例${index + 1}`,
+            description: caseItem.description || '',
+            cover: `https://via.placeholder.com/400x225/${color}/ffffff?text=${encodeURIComponent(caseItem.title || '案例')}`,
+            platform: caseItem.platform || 'B站',
+            type: caseItem.type || 'video',
+            views: caseItem.views || `${(Math.random() * 200 + 10).toFixed(1)}万`,
+            likes: caseItem.likes || `${(Math.random() * 20 + 1).toFixed(1)}万`,
+            publishTime: caseItem.publishTime || new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            author: caseItem.author || `创作者${String.fromCharCode(65 + index)}`,
+            successElements: caseItem.successElements || ['内容优质', '形式新颖', '传播力强']
+          }
+        })
+        
+        cases.value = newCases.sort(() => Math.random() - 0.5)
+        ElMessage.success(`成功获取${newCases.length}个最新爆款案例`)
+      } catch (parseError) {
+        console.error('解析AI返回数据失败:', parseError, '原始内容:', res.data.content)
+        // 如果解析失败，使用备用数据
+        generateFallbackCases()
+        ElMessage.warning('AI数据解析失败，已使用备用数据')
+      }
+    } else {
+      // 如果AI调用失败，使用备用数据
+      generateFallbackCases()
+      ElMessage.warning('AI获取失败，已使用备用数据')
+    }
+  } catch (error) {
+    console.error('刷新案例失败:', error)
+    // 如果出错，使用备用数据
+    generateFallbackCases()
+    ElMessage.error('刷新失败，已使用备用数据')
+  } finally {
     loadingCases.value = false
-  }, 1500)
+  }
 }
 
-const viewCase = (case) => {
-  ElMessage.info(`查看案例详情：${case.title}`)
+// 生成备用案例数据（当AI调用失败时使用）
+const generateFallbackCases = () => {
+  const fallbackCases = [
+    {
+      id: Date.now(),
+      title: 'AI创作工具使用教程',
+      description: '详细介绍如何使用AI工具提升内容创作效率和质量',
+      cover: 'https://via.placeholder.com/400x225/667eea/ffffff?text=AI+创作工具',
+      platform: 'B站',
+      type: 'video',
+      views: '125万',
+      likes: '8.6万',
+      publishTime: '2024-01-15',
+      author: '创作者A',
+      successElements: ['实用性强', '讲解清晰', '案例丰富']
+    },
+    {
+      id: Date.now() + 1,
+      title: '短视频封面设计技巧',
+      description: '分享如何设计吸引人的短视频封面，提升视频点击率',
+      cover: 'https://via.placeholder.com/400x225/f093fb/ffffff?text=封面设计',
+      platform: '抖音',
+      type: 'short',
+      views: '98万',
+      likes: '12.3万',
+      publishTime: '2024-01-14',
+      author: '创作者B',
+      successElements: ['视觉冲击', '信息明确', '风格统一']
+    },
+    {
+      id: Date.now() + 2,
+      title: '内容营销策略分享',
+      description: '深度解析内容营销的核心策略和实战经验',
+      cover: 'https://via.placeholder.com/400x225/4facfe/ffffff?text=内容营销',
+      platform: '公众号',
+      type: 'article',
+      views: '45万',
+      likes: '3.2万',
+      publishTime: '2024-01-13',
+      author: '创作者C',
+      successElements: ['深度分析', '实战经验', '可操作性强']
+    },
+    {
+      id: Date.now() + 3,
+      title: '小红书爆款封面设计',
+      description: '分析小红书高点击率封面的设计规律和技巧',
+      cover: 'https://via.placeholder.com/400x225/ff6b6b/ffffff?text=小红书封面',
+      platform: '小红书',
+      type: 'article',
+      views: '68万',
+      likes: '5.8万',
+      publishTime: '2024-01-12',
+      author: '创作者D',
+      successElements: ['视觉美观', '信息清晰', '风格统一']
+    }
+  ]
+  
+  cases.value = fallbackCases
 }
 
-const analyzeCase = (case) => {
-  ElMessage.info(`分析案例要素：${case.title}`)
+const viewCase = (caseItem) => {
+  ElMessage.info(`查看案例详情：${caseItem.title}`)
 }
 
-const useCaseAsTemplate = (case) => {
+const analyzeCase = (caseItem) => {
+  ElMessage.info(`分析案例要素：${caseItem.title}`)
+}
+
+const useCaseAsTemplate = (caseItem) => {
   router.push({
     path: '/workbench',
     query: {
-      type: case.type === 'video' ? 'TEXT' : 'IMAGE',
-      prompt: `参考案例"${case.title}"的成功要素：${case.successElements.join('、')}，创作类似内容：${case.description}`
+      type: caseItem.type === 'video' ? 'TEXT' : 'IMAGE',
+      prompt: `参考案例"${caseItem.title}"的成功要素：${caseItem.successElements.join('、')}，创作类似内容：${caseItem.description}`
     }
   })
 }

@@ -32,3 +32,57 @@ export function getUserList(params) {
     params
   })
 }
+
+/**
+ * 更新用户信息
+ */
+export function updateProfile(data) {
+  return request({
+    url: '/user/profile',
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 更新用户头像
+ */
+export function updateAvatar(data) {
+  return request({
+    url: '/user/avatar',
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 修改密码
+ */
+export function changePassword(data) {
+  return request({
+    url: '/user/password',
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 更新用户偏好设置
+ */
+export function updatePreferences(data) {
+  return request({
+    url: '/user/preferences',
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 获取用户偏好设置
+ */
+export function getPreferences() {
+  return request({
+    url: '/user/preferences',
+    method: 'get'
+  })
+}

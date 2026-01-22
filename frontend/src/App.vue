@@ -22,10 +22,18 @@ const isGuestPage = computed(() => {
 })
 
 onMounted(() => {
-  // 如果未登录且不在访客页面，跳转到登录页
+  // 如果未登录且不在访客页面，跳转到landing页面
   const token = localStorage.getItem('token')
   if (!token && !isGuestPage.value) {
-    router.push('/login')
+    router.push('/')
+  }
+  
+  // 初始化深色模式
+  const darkMode = localStorage.getItem('darkMode')
+  if (darkMode === 'true') {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
   }
 })
 </script>

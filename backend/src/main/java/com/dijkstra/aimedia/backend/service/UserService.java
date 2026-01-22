@@ -8,6 +8,8 @@ import com.dijkstra.aimedia.backend.constant.UserRole;
 import com.dijkstra.aimedia.backend.dto.LoginRequest;
 import com.dijkstra.aimedia.backend.dto.LoginResponse;
 import com.dijkstra.aimedia.backend.dto.RegisterRequest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.dijkstra.aimedia.backend.entity.User;
 import com.dijkstra.aimedia.backend.exception.BusinessException;
 import com.dijkstra.aimedia.backend.mapper.UserMapper;
@@ -30,6 +32,7 @@ public class UserService {
     
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     /**
      * 用户注册
@@ -47,9 +50,20 @@ public class UserService {
             throw new BusinessException(ResultCode.USERNAME_EXISTS);
         }
         
+        // 检查邮箱是否已存在
+        if (request.getEmail() != null && !request.getEmail().isEmpty()) {
+            LambdaQueryWrapper<User> emailQueryWrapper = new LambdaQueryWrapper<>();
+            emailQueryWrapper.eq(User::getEmail, request.getEmail());
+            User existingEmailUser = userMapper.selectOne(emailQueryWrapper);
+            if (existingEmailUser != null) {
+                throw new BusinessException(ResultCode.ERROR.getCode(), "该邮箱已被注册");
+            }
+        }
+        
         // 创建新用户
         User user = new User();
         user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
         // 密码加密（实际项目中应使用BCrypt等加密算法）
         user.setPassword(request.getPassword()); // TODO: 使用BCrypt加密
         user.setRole(UserRole.USER); // 默认普通用户
@@ -69,6 +83,7 @@ public class UserService {
         response.setUsername(user.getUsername());
         response.setRole(user.getRole());
         response.setAvatar(user.getAvatar());
+        response.setEmail(user.getEmail());
         
         return response;
     }
@@ -104,8 +119,86 @@ public class UserService {
         response.setUsername(user.getUsername());
         response.setRole(user.getRole());
         response.setAvatar(user.getAvatar());
+        response.setEmail(user.getEmail());
         
         return response;
+    }
+    
+    /**
+     * 更新用户信息
+     * 
+     * @param userId 用户ID
+     * @param username 用户名
+     * @return 更新后的用户信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public User updateProfile(Long userId, String username) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "用户不存在");
+        }
+        
+        // 如果用户名改变，检查是否重复
+        if (username != null && !username.equals(user.getUsername())) {
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getUsername, username);
+            User existingUser = userMapper.selectOne(queryWrapper);
+            if (existingUser != null && !existingUser.getId().equals(userId)) {
+                throw new BusinessException(ResultCode.ERROR.getCode(), "用户名已存在");
+            }
+            user.setUsername(username);
+        }
+        
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+        return user;
+    }
+    
+    /**
+     * 更新用户头像
+     * 
+     * @param userId 用户ID
+     * @param avatar 头像（base64或URL）
+     * @return 更新后的用户信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public User updateAvatar(Long userId, String avatar) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "用户不存在");
+        }
+        
+        user.setAvatar(avatar);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+        return user;
+    }
+    
+    /**
+     * 修改密码
+     * 
+     * @param userId 用户ID
+     * @param currentPassword 当前密码
+     * @param newPassword 新密码
+     * @return 是否成功
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "用户不存在");
+        }
+        
+        // 验证当前密码
+        if (!user.getPassword().equals(currentPassword)) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "当前密码错误");
+        }
+        
+        // 更新密码（实际项目中应使用BCrypt加密）
+        user.setPassword(newPassword); // TODO: 使用BCrypt加密
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+        return true;
     }
     
     /**
@@ -150,5 +243,57 @@ public class UserService {
      */
     public Long getTotalUsersCount() {
         return userMapper.selectCount(null);
+    }
+    
+    /**
+     * 更新用户偏好设置
+     * 
+     * @param userId 用户ID
+     * @param preferencesMap 偏好设置Map
+     * @return 更新后的用户信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public User updatePreferences(Long userId, java.util.Map<String, Object> preferencesMap) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "用户不存在");
+        }
+        
+        try {
+            // 将Map转换为JSON字符串
+            String preferencesJson = objectMapper.writeValueAsString(preferencesMap);
+            user.setPreferences(preferencesJson);
+            user.setUpdateTime(LocalDateTime.now());
+            userMapper.updateById(user);
+            return user;
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "偏好设置格式错误");
+        }
+    }
+    
+    /**
+     * 获取用户偏好设置
+     * 
+     * @param userId 用户ID
+     * @return 偏好设置Map，如果不存在则返回null
+     */
+    public java.util.Map<String, Object> getPreferences(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "用户不存在");
+        }
+        
+        if (user.getPreferences() == null || user.getPreferences().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // 将JSON字符串转换为Map
+            return objectMapper.readValue(user.getPreferences(), 
+                objectMapper.getTypeFactory().constructMapType(
+                    java.util.Map.class, String.class, Object.class));
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "偏好设置格式错误");
+        }
     }
 }

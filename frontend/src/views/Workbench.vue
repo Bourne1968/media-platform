@@ -1,62 +1,6 @@
 <template>
   <div class="workbench-page">
-    <div class="workbench-shell">
-      <!-- 侧边栏 -->
-      <aside class="side-nav">
-        <div class="side-logo">
-          <el-icon><Lightning /></el-icon>
-          <span>AI Creator Studio</span>
-        </div>
-        <nav class="side-menu">
-          <div
-            v-for="item in filteredNavItems"
-            :key="item.key"
-            class="side-item"
-            :class="{ active: activeNav === item.key }"
-            @click="handleNavClick(item)"
-          >
-            <div class="item-left">
-              <el-icon><component :is="item.icon" /></el-icon>
-              <span>{{ item.label }}</span>
-            </div>
-            <span v-if="activeNav === item.key" class="item-dot"></span>
-          </div>
-        </nav>
-        <div class="side-footer">
-          <el-button 
-            text 
-            class="achievement-btn"
-            @click="showAchievement = true"
-          >
-            <el-icon><Trophy /></el-icon>
-            <span>成就系统</span>
-          </el-button>
-          <el-dropdown placement="top-start" @command="handleUserCommand" trigger="click">
-            <div class="user-card" style="cursor: pointer;">
-              <div class="user-avatar">{{ userInitial }}</div>
-              <div>
-                <p class="user-name">{{ username || '用户' }}</p>
-                <p class="user-tier">{{ userTier }}</p>
-              </div>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="settings">
-                  <el-icon><Setting /></el-icon>
-                  个人设置
-                </el-dropdown-item>
-                <el-dropdown-item command="logout">
-                  <el-icon><SwitchButton /></el-icon>
-                  退出登录
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </aside>
-
-      <div class="content-area">
-        <div class="main-layout">
+    <div class="main-layout">
           <section class="left-panel">
         <div class="section">
           <div class="section-title">创作类型</div>
@@ -308,11 +252,6 @@
       </section>
     </div>
   </div>
-</div>
-  
-  <!-- 成就系统 -->
-  <AchievementSystem v-model="showAchievement" />
-</div>
 </template>
 
 <script setup>
@@ -324,26 +263,16 @@ import {
   DocumentAdd,
   Download,
   EditPen,
-  Lightning,
   MagicStick,
   Picture,
   Refresh,
-  Setting,
-  Star,
   Tools,
-  VideoCameraFilled,
-  Document,
-  Calendar,
-  HomeFilled,
-  Trophy,
-  SwitchButton,
-  Lightbulb
+  VideoCameraFilled
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { generateText } from '@/api/ai'
 import { createRecord } from '@/api/creation'
-import AchievementSystem from '@/components/AchievementSystem.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -357,27 +286,12 @@ const advancedCollapse = ref([])
 const errorMessage = ref('')
 const progress = ref(30)
 const keywordInput = ref('')
-const activeNav = ref('workbench')
-const username = ref('')
-const userTier = ref('普通用户')
-const isAdmin = ref(false)
-const showAchievement = ref(false)
 
 const creationTypes = [
   { value: 'titles', label: '标题', icon: '📌' },
   { value: 'script', label: '脚本', icon: '📄' },
   { value: 'single', label: '文案', icon: '✍️' },
   { value: 'comment', label: '评论', icon: '💬' }
-]
-
-const navItems = [
-  { key: 'home', label: '首页', icon: HomeFilled, route: '/home' },
-  { key: 'workbench', label: 'AI创作工作台', icon: EditPen, route: '/workbench' },
-  { key: 'cover-design', label: 'AI封面设计', icon: Picture, route: '/cover-design' },
-  { key: 'inspiration', label: '灵感中心', icon: Lightbulb, route: '/inspiration' },
-  { key: 'history', label: '创作库', icon: Document, route: '/history' },
-  { key: 'calendar', label: '创作日历', icon: Calendar, route: '/calendar' },
-  { key: 'settings', label: '设置', icon: Setting, route: '/settings' }
 ]
 
 const styleOptions = [
@@ -408,39 +322,6 @@ const resultCount = computed(() =>
   form.textMode === 'titles' ? generatedTitles.value.length : generatedContent.value ? 1 : 0
 )
 
-const userInitial = computed(() => {
-  if (username.value) {
-    return username.value.charAt(0).toUpperCase()
-  }
-  return 'U'
-})
-
-const filteredNavItems = computed(() => {
-  return navItems
-})
-
-const handleNavClick = (item) => {
-  activeNav.value = item.key
-  if (item.route && item.route !== route.path) {
-    router.push(item.route)
-  }
-}
-
-const handleUserCommand = (command) => {
-  if (command === 'settings') {
-    router.push('/settings')
-  } else if (command === 'logout') {
-    ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    }).then(() => {
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      router.push('/login')
-    }).catch(() => {})
-  }
-}
 
 const previewStatus = computed(() => {
   if (generating.value) return 'loading'
@@ -599,26 +480,6 @@ const exportResults = () => {
 }
 
 onMounted(() => {
-  // 初始化用户信息
-  const userInfo = localStorage.getItem('userInfo')
-  if (userInfo) {
-    try {
-      const user = JSON.parse(userInfo)
-      username.value = user.username || user.name || '用户'
-      userTier.value = user.tier || (user.role === 'ADMIN' ? '管理员' : '普通用户')
-      isAdmin.value = user.role === 'ADMIN'
-    } catch (e) {
-      console.error('解析用户信息失败：', e)
-    }
-  }
-
-  // 根据当前路由设置激活的导航项
-  const currentPath = route.path
-  const matchedNav = navItems.find(item => item.route === currentPath)
-  if (matchedNav) {
-    activeNav.value = matchedNav.key
-  }
-
   // 从路由参数获取初始化值
   if (route.query.type) {
     selectCreationType(route.query.type)
@@ -650,147 +511,6 @@ onMounted(() => {
   min-height: 100vh;
   background: linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
   padding-bottom: 32px;
-}
-
-.workbench-shell {
-  display: flex;
-  min-height: 100vh;
-}
-
-.side-nav {
-  width: 220px;
-  border-right: 1px solid #eef0f3;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  padding: 18px 12px;
-  gap: 12px;
-  height: 100vh;
-  overflow-y: auto;
-  position: sticky;
-  top: 0;
-}
-
-.side-logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 16px;
-  font-weight: 700;
-  color: #4b5bd7;
-  background: #f6f8ff;
-}
-
-.side-menu {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 4px;
-}
-
-.side-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  color: #5f6368;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.side-item:hover {
-  background: #f5f7fb;
-}
-
-.side-item.active {
-  background: #eef2ff;
-  color: #4b5bd7;
-  font-weight: 700;
-}
-
-.item-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.item-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: #4b5bd7;
-  margin-left: auto;
-}
-
-.side-footer {
-  padding: 8px;
-  border-top: 1px solid #f0f2f5;
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.achievement-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  color: var(--gray-600);
-  transition: all 0.2s ease;
-}
-
-.achievement-btn:hover {
-  background: var(--gray-100);
-  color: var(--primary-blue);
-}
-
-
-.user-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.user-card:hover {
-  background: #f5f7fb;
-}
-
-.user-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #7c5dfa, #6fa8ff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.user-name {
-  font-weight: 700;
-  color: #1f2a44;
-}
-
-.user-tier {
-  font-size: 12px;
-  color: #7a8190;
-}
-
-.content-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
 }
 
 .main-layout {
@@ -1207,10 +927,6 @@ onMounted(() => {
     padding: 12px;
   }
   
-  .side-nav {
-    width: 200px;
-  }
-  
   .type-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1234,32 +950,6 @@ onMounted(() => {
     min-height: 400px;
   }
   
-  .workbench-shell {
-    flex-direction: column;
-  }
-  
-  .side-nav {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #eef0f3;
-    flex-direction: row;
-    padding: 12px;
-    overflow-x: auto;
-  }
-  
-  .side-menu {
-    flex-direction: row;
-    flex: 1;
-    gap: 8px;
-  }
-  
-  .side-logo {
-    flex-shrink: 0;
-  }
-  
-  .side-footer {
-    display: none;
-  }
 }
 
 @media (max-width: 768px) {

@@ -62,16 +62,16 @@
               class="login-button"
             >
               <el-icon v-if="!loading"><Right /></el-icon>
-              {{ isRegister ? '注册' : '登录' }}
+              登录
             </el-button>
           </el-form-item>
           <el-form-item>
             <el-button
               type="text"
-              @click="isRegister = !isRegister"
+              @click="$router.push('/register')"
               class="switch-button"
             >
-              {{ isRegister ? '已有账号？去登录' : '没有账号？去注册' }}
+              没有账号？去注册
             </el-button>
           </el-form-item>
         </el-form>
@@ -85,12 +85,11 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Right, MagicStick } from '@element-plus/icons-vue'
-import { login, register } from '@/api/user'
+import { login } from '@/api/user'
 
 const router = useRouter()
 const loginFormRef = ref(null)
 const loading = ref(false)
-const isRegister = ref(false)
 
 const loginForm = reactive({
   username: '',
@@ -113,13 +112,12 @@ const handleLogin = async () => {
     if (valid) {
       loading.value = true
       try {
-        const api = isRegister.value ? register : login
-        const res = await api(loginForm)
+        const res = await login(loginForm)
         if (res.code === 200) {
           // 保存token和用户信息
           localStorage.setItem('token', res.data.token)
           localStorage.setItem('userInfo', JSON.stringify(res.data))
-          ElMessage.success(isRegister.value ? '注册成功' : '登录成功')
+          ElMessage.success('登录成功')
           router.push('/workbench')
         }
       } catch (error) {

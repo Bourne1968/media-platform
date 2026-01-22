@@ -270,7 +270,7 @@
             </p>
             <div class="about-stats">
               <div class="about-stat">
-                <div class="stat-number">2024</div>
+                <div class="stat-number">2026</div>
                 <div class="stat-label">成立时间</div>
               </div>
               <div class="about-stat">
@@ -322,7 +322,7 @@
           </div>
         </div>
         <div class="footer-bottom">
-          <p>&copy; 2024 AI Creator Studio. All rights reserved.</p>
+          <p>&copy; 2026 AI Creator Studio. All rights reserved.</p>
         </div>
       </div>
     </footer>
@@ -331,6 +331,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import {
   Lightning,
   EditPen,

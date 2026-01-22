@@ -38,4 +38,9 @@ public class LoginResponse {
      * 头像
      */
     private String avatar;
+    
+    /**
+     * 邮箱
+     */
+    private String email;
 }

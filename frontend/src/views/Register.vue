@@ -152,6 +152,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Message, MagicStick } from '@element-plus/icons-vue'
+import { register } from '@/api/user'
 
 const router = useRouter()
 
@@ -210,18 +211,61 @@ const handleRegister = async () => {
 
     registering.value = true
 
-    // 这里应该调用注册API
-    // const res = await register(registerForm)
+    // 调用注册API
+    console.log('开始注册，用户名:', registerForm.username, '邮箱:', registerForm.email)
+    
+    const res = await register({
+      username: registerForm.username,
+      email: registerForm.email,
+      password: registerForm.password
+    })
 
-    // 模拟注册成功
-    setTimeout(() => {
-      ElMessage.success('注册成功！请登录')
-      router.push('/login')
-      registering.value = false
-    }, 1500)
+    console.log('注册响应:', res)
+
+    if (res.code === 200) {
+      // 注册成功，保存token和用户信息
+      if (res.data && res.data.token) {
+        localStorage.setItem('token', res.data.token)
+        localStorage.setItem('userInfo', JSON.stringify({
+          userId: res.data.userId,
+          username: res.data.username,
+          role: res.data.role,
+          avatar: res.data.avatar
+        }))
+        console.log('用户信息已保存到localStorage')
+      }
+      
+      ElMessage.success('注册成功！')
+      // 跳转到首页
+      router.push('/home')
+    } else {
+      ElMessage.error(res.message || '注册失败，请重试')
+    }
+
+    registering.value = false
 
   } catch (error) {
-    console.error('注册失败:', error)
+    console.error('注册失败，详细错误:', error)
+    console.error('错误响应:', error.response)
+    
+    // 更详细的错误信息
+    let errorMessage = '注册失败，请重试'
+    if (error.response) {
+      // 服务器返回了响应
+      if (error.response.data) {
+        errorMessage = error.response.data.message || error.response.data.msg || errorMessage
+      } else {
+        errorMessage = `服务器错误: ${error.response.status} ${error.response.statusText}`
+      }
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      errorMessage = '无法连接到服务器，请检查后端服务是否运行'
+    } else {
+      // 请求配置错误
+      errorMessage = error.message || errorMessage
+    }
+    
+    ElMessage.error(errorMessage)
     registering.value = false
   }
 }

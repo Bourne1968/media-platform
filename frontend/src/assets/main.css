@@ -19,6 +19,31 @@
   --text-regular: #606266;
   --text-secondary: #909399;
   --text-placeholder: #c0c4cc;
+  
+  /* 边框颜色 */
+  --border-color: #e4e7ed;
+  --border-light: #ebeef5;
+}
+
+/* 深色模式样式 */
+.dark {
+  /* 背景色 */
+  --bg-color: #1a1a1a;
+  --card-bg: #2d2d2d;
+  
+  /* 文字颜色 */
+  --text-primary: #e5eaf3;
+  --text-regular: #cfd3dc;
+  --text-secondary: #a3a6ad;
+  --text-placeholder: #6c6e72;
+  
+  /* 边框颜色 */
+  --border-color: #414243;
+  --border-light: #363637;
+  
+  /* 主色调整（深色模式下稍微调亮） */
+  --primary-color: #7c8ef5;
+  --primary-light: #2a2d3a;
 }
 
 * {
@@ -33,6 +58,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-primary);
   background: var(--bg-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Element Plus 主题色覆盖 */
@@ -64,4 +90,17 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* 深色模式滚动条 */
+.dark ::-webkit-scrollbar-track {
+  background: #2d2d2d;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #555555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #666666;
 }

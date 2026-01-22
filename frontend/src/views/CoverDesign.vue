@@ -1,58 +1,6 @@
 <template>
     <div class="cover-design-page">
-      <div class="cover-design-shell">
-        <!-- 侧边栏 -->
-        <aside class="side-nav">
-          <div class="side-logo">
-            <el-icon><Lightning /></el-icon>
-            <span>AI Creator Studio</span>
-          </div>
-          <nav class="side-menu">
-            <div
-              v-for="item in filteredNavItems"
-              :key="item.key"
-              class="side-item"
-              :class="{ active: activeNav === item.key }"
-              @click="handleNavClick(item)"
-            >
-              <div class="item-left">
-                <el-icon><component :is="item.icon" /></el-icon>
-                <span>{{ item.label }}</span>
-              </div>
-              <span v-if="activeNav === item.key" class="item-dot"></span>
-            </div>
-          </nav>
-          <div class="side-footer">
-            <el-button 
-              text 
-              class="achievement-btn"
-              @click="showAchievement = true"
-            >
-              <el-icon><Trophy /></el-icon>
-              <span>成就系统</span>
-            </el-button>
-            <el-dropdown placement="top-start" @command="handleUserCommand" trigger="click">
-              <div class="user-card" style="cursor: pointer;">
-                <div class="user-avatar">{{ userInitial }}</div>
-                <div>
-                  <p class="user-name">{{ username || '用户' }}</p>
-                  <p class="user-tier">{{ userTier }}</p>
-                </div>
-              </div>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="logout">
-                    <el-icon><SwitchButton /></el-icon>
-                    退出登录
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
-        </aside>
-  
-        <div class="content-area">
-          <div class="main-layout">
+      <div class="main-layout">
             <!-- 左侧控制面板 -->
             <section class="left-panel">
               <!-- 封面类型 -->
@@ -83,13 +31,7 @@
                   :rows="8"
                   :maxlength="300"
                   show-word-limit
-                  placeholder="请描述封面的主题和风格...
-  
-  例如：
-  • 科技感十足的手机产品图
-  • 温馨的美食烹饪场景
-  • 简约的知识分享封面
-  • 充满活力的运动健身"
+                  placeholder="请描述封面的主题和风格..."
                 />
               </div>
   
@@ -300,11 +242,6 @@
               </div>
             </section>
           </div>
-        </div>
-      </div>
-    
-      <!-- 成就系统 -->
-      <AchievementSystem v-model="showAchievement" />
     </div>
   </template>
   
@@ -332,7 +269,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   } from '@element-plus/icons-vue'
   import { generateImage } from '@/api/ai'
   import { createRecord } from '@/api/creation'
-  import AchievementSystem from '@/components/AchievementSystem.vue'
   
   const router = useRouter()
   const route = useRoute()
@@ -346,24 +282,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   const errorMessage = ref('')
   const progress = ref(0)
   const estimatedTime = ref(15)
-  const activeNav = ref('cover-design')
-  const username = ref('')
-  const userTier = ref('普通用户')
-  const isAdmin = ref(false)
-  const showAchievement = ref(false)
-  
   const coverTypes = [
     { value: 'video', label: '视频', icon: '🎬' },
     { value: 'poster', label: '海报', icon: '📱' },
     { value: 'article', label: '文章', icon: '📄' }
-  ]
-  
-  const navItems = [
-    { key: 'home', label: '首页', icon: HomeFilled, route: '/home' },
-    { key: 'workbench', label: 'AI创作工作台', icon: EditPenIcon, route: '/workbench' },
-    { key: 'cover-design', label: 'AI封面设计', icon: Picture, route: '/cover-design' },
-    { key: 'history', label: '创作库', icon: Document, route: '/history' },
-    { key: 'calendar', label: '创作日历', icon: Calendar, route: '/calendar' }
   ]
   
   const visualStyles = [
@@ -400,45 +322,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   
   const hasResult = computed(() => generatedImages.value.length > 0)
   
-  const userInitial = computed(() => {
-    if (username.value) {
-      return username.value.charAt(0).toUpperCase()
-    }
-    return 'U'
-  })
-  
-  const filteredNavItems = computed(() => {
-    return navItems
-  })
-  
   const previewStatus = computed(() => {
     if (generating.value) return 'loading'
     if (errorMessage.value) return 'error'
     if (!hasResult.value) return 'idle'
     return 'success'
   })
-  
-  const handleNavClick = (item) => {
-    activeNav.value = item.key
-    if (item.route && item.route !== route.path) {
-      router.push(item.route)
-    }
-  }
-  
-  const handleUserCommand = (command) => {
-    if (command === 'logout') {
-      ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        localStorage.removeItem('token')
-        localStorage.removeItem('userInfo')
-        router.push('/login')
-      }).catch(() => {})
-    }
-  }
-  
   
   const getPlatformSize = (platform) => {
     const sizes = {
@@ -780,25 +669,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
   }
 
   onMounted(() => {
-    // 初始化用户信息
-    const userInfo = localStorage.getItem('userInfo')
-    if (userInfo) {
-      try {
-        const user = JSON.parse(userInfo)
-        username.value = user.username || user.name || '用户'
-        userTier.value = user.tier || (user.role === 'ADMIN' ? '管理员' : '普通用户')
-        isAdmin.value = user.role === 'ADMIN'
-      } catch (e) {
-        console.error('解析用户信息失败：', e)
-      }
-    }
-  
-    // 根据当前路由设置激活的导航项
-    const currentPath = route.path
-    const matchedNav = navItems.find(item => item.route === currentPath)
-    if (matchedNav) {
-      activeNav.value = matchedNav.key
-    }
+    // 页面初始化逻辑（如果需要）
   })
   </script>
   
@@ -822,146 +693,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
     min-height: 100vh;
     background: linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
     padding-bottom: 32px;
-  }
-  
-  .cover-design-shell {
-    display: flex;
-    min-height: 100vh;
-  }
-  
-  .side-nav {
-    width: 220px;
-    border-right: 1px solid #eef0f3;
-    background: #ffffff;
-    display: flex;
-    flex-direction: column;
-    padding: 18px 12px;
-    gap: 12px;
-    height: 100vh;
-    overflow-y: auto;
-    position: sticky;
-    top: 0;
-  }
-  
-  .side-logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px;
-    border-radius: 16px;
-    font-weight: 700;
-    color: #4b5bd7;
-    background: #f6f8ff;
-  }
-  
-  .side-menu {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 4px;
-  }
-  
-  .side-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    color: #5f6368;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .side-item:hover {
-    background: #f5f7fb;
-  }
-  
-  .side-item.active {
-    background: #eef2ff;
-    color: #4b5bd7;
-    font-weight: 700;
-  }
-  
-  .item-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .item-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 9999px;
-    background: #4b5bd7;
-    margin-left: auto;
-  }
-  
-  .side-footer {
-    padding: 8px;
-    border-top: 1px solid #f0f2f5;
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .achievement-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    color: var(--gray-600);
-    transition: all 0.2s ease;
-  }
-  
-  .achievement-btn:hover {
-    background: var(--gray-100);
-    color: var(--primary-blue);
-  }
-  
-  .user-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .user-card:hover {
-    background: #f5f7fb;
-  }
-  
-  .user-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #7c5dfa, #6fa8ff);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    font-weight: 700;
-  }
-  
-  .user-name {
-    font-weight: 700;
-    color: #1f2a44;
-  }
-  
-  .user-tier {
-    font-size: 12px;
-    color: #7a8190;
-  }
-  
-  .content-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
   }
   
   .main-layout {
@@ -1484,10 +1215,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
       padding: 12px;
     }
     
-    .side-nav {
-      width: 200px;
-    }
-    
     .type-grid {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -1515,33 +1242,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
       min-height: 400px;
     }
     
-    .cover-design-shell {
-      flex-direction: column;
-    }
-    
-    .side-nav {
-      width: 100%;
-      border-right: none;
-      border-bottom: 1px solid #eef0f3;
-      flex-direction: row;
-      padding: 12px;
-      overflow-x: auto;
-      height: auto;
-    }
-    
-    .side-menu {
-      flex-direction: row;
-      flex: 1;
-      gap: 8px;
-    }
-    
-    .side-logo {
-      flex-shrink: 0;
-    }
-    
-    .side-footer {
-      display: none;
-    }
   }
 
   @media (max-width: 768px) {
