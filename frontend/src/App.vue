@@ -1,22 +1,30 @@
 <template>
   <div id="app">
-    <router-view v-if="route.path === '/login'" />
+    <!-- 访客页面：Landing、Login、Register -->
+    <router-view v-if="isGuestPage" />
+    <!-- 登录用户页面：使用Layout -->
     <Layout v-else />
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Layout from '@/components/Layout.vue'
 
 const router = useRouter()
 const route = useRoute()
 
+// 判断是否为访客页面
+const isGuestPage = computed(() => {
+  const guestPaths = ['/', '/login', '/register']
+  return guestPaths.includes(route.path)
+})
+
 onMounted(() => {
-  // 如果未登录且不在登录页，跳转到登录页
+  // 如果未登录且不在访客页面，跳转到登录页
   const token = localStorage.getItem('token')
-  if (!token && route.path !== '/login') {
+  if (!token && !isGuestPage.value) {
     router.push('/login')
   }
 })

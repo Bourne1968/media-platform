@@ -41,6 +41,10 @@
             </div>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item command="settings">
+                  <el-icon><Setting /></el-icon>
+                  个人设置
+                </el-dropdown-item>
                 <el-dropdown-item command="logout">
                   <el-icon><SwitchButton /></el-icon>
                   退出登录
@@ -332,7 +336,8 @@ import {
   Calendar,
   HomeFilled,
   Trophy,
-  SwitchButton
+  SwitchButton,
+  Lightbulb
 } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
@@ -369,8 +374,10 @@ const navItems = [
   { key: 'home', label: '首页', icon: HomeFilled, route: '/home' },
   { key: 'workbench', label: 'AI创作工作台', icon: EditPen, route: '/workbench' },
   { key: 'cover-design', label: 'AI封面设计', icon: Picture, route: '/cover-design' },
+  { key: 'inspiration', label: '灵感中心', icon: Lightbulb, route: '/inspiration' },
   { key: 'history', label: '创作库', icon: Document, route: '/history' },
-  { key: 'calendar', label: '创作日历', icon: Calendar, route: '/calendar' }
+  { key: 'calendar', label: '创作日历', icon: Calendar, route: '/calendar' },
+  { key: 'settings', label: '设置', icon: Setting, route: '/settings' }
 ]
 
 const styleOptions = [
@@ -420,7 +427,9 @@ const handleNavClick = (item) => {
 }
 
 const handleUserCommand = (command) => {
-  if (command === 'logout') {
+  if (command === 'settings') {
+    router.push('/settings')
+  } else if (command === 'logout') {
     ElMessageBox.confirm('确定要退出登录吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',

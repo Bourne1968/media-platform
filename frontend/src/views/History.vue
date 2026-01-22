@@ -86,6 +86,176 @@
     <!-- 分割线 -->
     <div class="divider"></div>
 
+    <!-- 完整项目列表区域 -->
+    <div class="full-projects-section">
+      <div class="section-header">
+        <h2 class="section-title">全部创作记录</h2>
+      </div>
+
+      <!-- 筛选和搜索区域 -->
+      <div class="filters-section">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label class="filter-label">内容类型：</label>
+            <el-radio-group v-model="filterType" size="small" @change="applyFilters">
+              <el-radio-button label="">全部</el-radio-button>
+              <el-radio-button label="TEXT">文案</el-radio-button>
+              <el-radio-button label="IMAGE">封面</el-radio-button>
+            </el-radio-group>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">时间范围：</label>
+            <el-select v-model="filterTimeRange" size="small" style="width: 120px" @change="applyFilters">
+              <el-option label="全部时间" value="all" />
+              <el-option label="今天" value="today" />
+              <el-option label="本周" value="week" />
+              <el-option label="本月" value="month" />
+              <el-option label="最近3个月" value="3months" />
+            </el-select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">排序方式：</label>
+            <el-select v-model="sortBy" size="small" style="width: 120px" @change="applyFilters">
+              <el-option label="创建时间" value="time" />
+              <el-option label="标题字母" value="title" />
+              <el-option label="类型" value="type" />
+            </el-select>
+          </div>
+        </div>
+        <div class="search-row">
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索创作记录..."
+            size="small"
+            style="width: 300px"
+            @input="applyFilters"
+            clearable
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+          <el-button type="primary" size="small" @click="refreshRecords" :loading="refreshing">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 项目列表 -->
+      <div class="projects-list-container">
+        <div class="projects-grid">
+          <div
+            v-for="record in filteredRecords"
+            :key="record.id"
+            class="project-card"
+          >
+            <div class="project-card-header">
+              <div class="project-type">
+                <el-tag :type="record.type === 'TEXT' ? 'success' : 'warning'" size="small">
+                  {{ record.type === 'TEXT' ? '文案' : '封面' }}
+                </el-tag>
+              </div>
+              <div class="project-time">{{ formatRelativeTime(record.createTime) }}</div>
+            </div>
+            <div class="project-card-content">
+              <div class="project-title">{{ getProjectTitle(record) }}</div>
+              <div class="project-preview" v-if="record.type === 'TEXT'">
+                {{ getTextPreview(record.resultContent) }}
+              </div>
+              <div class="project-preview" v-else-if="record.imageUrl">
+                <img :src="record.imageUrl" :alt="getProjectTitle(record)" class="preview-image" />
+              </div>
+              <div class="project-prompt" v-if="record.prompt">
+                <span class="prompt-label">创作提示：</span>
+                {{ record.prompt.length > 50 ? record.prompt.substring(0, 50) + '...' : record.prompt }}
+              </div>
+            </div>
+            <div class="project-card-footer">
+              <div class="project-actions">
+                <el-button text size="small" @click="viewProject(record)">
+                  <el-icon><View /></el-icon>
+                  查看
+                </el-button>
+                <el-button text size="small" @click="editProject(record)">
+                  <el-icon><EditPen /></el-icon>
+                  编辑
+                </el-button>
+                <el-button text size="small" @click="copyText(record.type === 'TEXT' ? record.resultContent : record.imageUrl)">
+                  <el-icon><CopyDocument /></el-icon>
+                  复制
+                </el-button>
+                <el-dropdown @command="(cmd) => handleProjectAction(cmd, record)" trigger="click">
+                  <el-button text size="small">
+                    <el-icon><More /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="favorite">
+                        <el-icon><Star /></el-icon>
+                        收藏
+                      </el-dropdown-item>
+                      <el-dropdown-item command="export">
+                        <el-icon><Download /></el-icon>
+                        导出
+                      </el-dropdown-item>
+                      <el-dropdown-item command="delete" class="danger">
+                        <el-icon><Delete /></el-icon>
+                        删除
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-if="filteredRecords.length === 0 && !loading" class="empty-state">
+          <el-empty
+            description="暂无创作记录"
+            :image-size="100"
+          >
+            <el-button type="primary" @click="$router.push('/workbench')">
+              立即创作
+            </el-button>
+          </el-empty>
+        </div>
+
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-state">
+          <el-skeleton
+            v-for="i in 6"
+            :key="i"
+            :loading="loading"
+            animated
+            class="project-skeleton"
+          >
+            <template #template>
+              <el-skeleton-item variant="rect" style="width: 100%; height: 200px;" />
+            </template>
+          </el-skeleton>
+        </div>
+      </div>
+
+      <!-- 分页 -->
+      <div class="pagination-section" v-if="totalPages > 1">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="totalRecords"
+          :page-sizes="[12, 24, 36, 48]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </div>
+
+    <!-- 分割线 -->
+    <div class="divider"></div>
+
     <!-- 本周统计区域 -->
     <div class="stats-section">
       <div class="section-header">
@@ -115,7 +285,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { EditPen, Picture, MagicStick, TrendCharts, Document, CopyDocument, Delete, ArrowRight } from '@element-plus/icons-vue'
+import { EditPen, Picture, MagicStick, TrendCharts, Document, CopyDocument, Delete, ArrowRight, Search, Refresh, View, More, Star, Download } from '@element-plus/icons-vue'
 import { getRecordList, deleteRecord } from '@/api/creation'
 
 const router = useRouter()
@@ -126,10 +296,94 @@ const currentDate = ref('')
 
 const records = ref([])
 const loading = ref(false)
+const refreshing = ref(false)
+
+// 筛选和搜索
+const filterType = ref('')
+const filterTimeRange = ref('all')
+const sortBy = ref('time')
+const searchQuery = ref('')
+
+// 分页
+const currentPage = ref(1)
+const pageSize = ref(12)
+const totalRecords = ref(0)
+const totalPages = ref(0)
 
 // 最近项目（显示前6条）
 const recentRecords = computed(() => {
   return records.value.slice(0, 6)
+})
+
+// 筛选和搜索后的记录
+const filteredRecords = computed(() => {
+  let filtered = [...records.value]
+
+  // 类型筛选
+  if (filterType.value) {
+    filtered = filtered.filter(record => record.type === filterType.value)
+  }
+
+  // 时间范围筛选
+  if (filterTimeRange.value !== 'all') {
+    const now = new Date()
+    let startDate
+
+    switch (filterTimeRange.value) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        break
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+        break
+      case '3months':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1)
+        break
+      default:
+        startDate = null
+    }
+
+    if (startDate) {
+      filtered = filtered.filter(record => new Date(record.createTime) >= startDate)
+    }
+  }
+
+  // 关键词搜索
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    filtered = filtered.filter(record => {
+      const title = getProjectTitle(record).toLowerCase()
+      const prompt = (record.prompt || '').toLowerCase()
+      const content = record.type === 'TEXT' ? (record.resultContent || '').toLowerCase() : ''
+
+      return title.includes(query) || prompt.includes(query) || content.includes(query)
+    })
+  }
+
+  // 排序
+  filtered.sort((a, b) => {
+    switch (sortBy.value) {
+      case 'time':
+        return new Date(b.createTime) - new Date(a.createTime)
+      case 'title':
+        return getProjectTitle(a).localeCompare(getProjectTitle(b))
+      case 'type':
+        return a.type.localeCompare(b.type)
+      default:
+        return 0
+    }
+  })
+
+  // 分页
+  totalRecords.value = filtered.length
+  totalPages.value = Math.ceil(totalRecords.value / pageSize.value)
+  const startIndex = (currentPage.value - 1) * pageSize.value
+  const endIndex = startIndex + pageSize.value
+
+  return filtered.slice(startIndex, endIndex)
 })
 
 // 本周统计
@@ -226,6 +480,7 @@ const formatRelativeTime = (timeStr) => {
 const loadRecords = async () => {
   loading.value = true
   try {
+    // 获取所有记录用于本地筛选和搜索
     const res = await getRecordList({ current: 1, size: 1000 })
     if (res.code === 200) {
       records.value = (res.data.records || []).sort((a, b) => {
@@ -273,8 +528,69 @@ const viewProject = (record) => {
 }
 
 const viewAllProjects = () => {
-  // 这里可以跳转到完整的项目列表页面，或者展开显示更多
-  ElMessage.info('查看更多项目功能开发中...')
+  // 滚动到完整项目列表区域
+  document.querySelector('.full-projects-section').scrollIntoView({
+    behavior: 'smooth'
+  })
+}
+
+// 获取文本预览
+const getTextPreview = (content) => {
+  if (!content) return ''
+  return content.length > 100 ? content.substring(0, 100) + '...' : content
+}
+
+// 应用筛选
+const applyFilters = () => {
+  currentPage.value = 1 // 重置到第一页
+}
+
+// 刷新记录
+const refreshRecords = async () => {
+  refreshing.value = true
+  await loadRecords()
+  refreshing.value = false
+  ElMessage.success('记录已刷新')
+}
+
+// 处理分页大小变化
+const handleSizeChange = (val) => {
+  pageSize.value = val
+  currentPage.value = 1
+}
+
+// 处理页码变化
+const handleCurrentChange = (val) => {
+  currentPage.value = val
+}
+
+// 编辑项目
+const editProject = (record) => {
+  const route = record.type === 'TEXT' ? '/workbench' : '/cover-design'
+  router.push({
+    path: route,
+    query: {
+      editId: record.id,
+      prompt: record.prompt || ''
+    }
+  })
+}
+
+// 处理项目操作
+const handleProjectAction = (command, record) => {
+  switch (command) {
+    case 'favorite':
+      // 这里可以调用收藏API
+      ElMessage.success('已添加到收藏')
+      break
+    case 'export':
+      // 这里可以调用导出API
+      ElMessage.success('导出功能开发中...')
+      break
+    case 'delete':
+      handleDelete(record.id)
+      break
+  }
 }
 
 onMounted(() => {
@@ -561,6 +877,166 @@ onMounted(() => {
   text-align: center;
 }
 
+/* 完整项目列表区域 */
+.full-projects-section {
+  margin-bottom: 30px;
+}
+
+/* 筛选和搜索区域 */
+.filters-section {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.filter-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-weight: 500;
+  color: #303133;
+  white-space: nowrap;
+}
+
+.search-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* 项目列表容器 */
+.projects-list-container {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0;
+}
+
+/* 项目卡片 */
+.project-card {
+  border-bottom: 1px solid #f0f0f0;
+  border-right: 1px solid #f0f0f0;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.project-card:hover {
+  background: #fafafa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.project-card:last-child {
+  border-bottom: none;
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.project-type .el-tag {
+  font-weight: 500;
+}
+
+.project-time {
+  font-size: 12px;
+  color: #909399;
+}
+
+.project-card-content {
+  margin-bottom: 16px;
+}
+
+.project-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.project-preview {
+  margin-bottom: 12px;
+  color: #606266;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.preview-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+}
+
+.project-prompt {
+  font-size: 12px;
+  color: #909399;
+}
+
+.prompt-label {
+  font-weight: 500;
+  color: #606266;
+}
+
+.project-card-footer {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 12px;
+}
+
+.project-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 空状态 */
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+/* 加载状态 */
+.loading-state {
+  padding: 20px;
+}
+
+.project-skeleton {
+  margin-bottom: 20px;
+}
+
+/* 分页 */
+.pagination-section {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
 /* 本周统计区域 */
 .stats-section {
   margin-bottom: 30px;
@@ -742,6 +1218,37 @@ onMounted(() => {
 
   .divider {
     margin: 24px 0;
+  }
+
+  /* 筛选和搜索响应式 */
+  .filter-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .search-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search-row .el-input {
+    width: 100% !important;
+  }
+
+  /* 项目卡片响应式 */
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-card {
+    border-right: none;
+  }
+
+  .project-actions {
+    flex-direction: column;
+    gap: 4px;
   }
 }
 
