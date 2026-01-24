@@ -34,6 +34,38 @@ export function getUserList(params) {
 }
 
 /**
+ * 管理员删除单个用户
+ */
+export function deleteUserByAdmin(id) {
+  return request({
+    url: `/user/admin/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 管理员批量删除用户
+ */
+export function batchDeleteUsersByAdmin(ids) {
+  return request({
+    url: '/user/admin/batch-delete',
+    method: 'post',
+    data: ids
+  })
+}
+
+/**
+ * 管理员更新用户角色
+ */
+export function updateUserRoleByAdmin(id, role) {
+  return request({
+    url: `/user/admin/${id}/role`,
+    method: 'put',
+    data: { role }
+  })
+}
+
+/**
  * 更新用户信息
  */
 export function updateProfile(data) {

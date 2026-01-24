@@ -49,9 +49,11 @@ public class UserController {
     
     /**
      * 获取用户列表（管理员功能）
-     * 
-     * @param current 当前页
-     * @param size 每页数量
+     *
+     * @param current  当前页
+     * @param size     每页数量
+     * @param username 用户名（可选）
+     * @param filterRole 角色（可选，ADMIN / USER）
      * @param httpRequest HTTP请求
      * @return 用户列表
      */
@@ -59,12 +61,14 @@ public class UserController {
     public Result<IPage<User>> getUserList(
             @RequestParam(defaultValue = "1") Long current,
             @RequestParam(defaultValue = "10") Long size,
+            @RequestParam(required = false) String username,
+            @RequestParam(name = "role", required = false) String filterRole,
             HttpServletRequest httpRequest) {
         String role = (String) httpRequest.getAttribute("role");
         if (!UserRole.ADMIN.equals(role)) {
             return Result.error(403, "权限不足");
         }
-        IPage<User> page = userService.getUserList(current, size);
+        IPage<User> page = userService.getUserList(current, size, username, filterRole);
         return Result.success(page);
     }
     
@@ -172,5 +176,64 @@ public class UserController {
         Long userId = (Long) httpRequest.getAttribute("userId");
         userService.deleteAccount(userId);
         return Result.success("账户删除成功", true);
+    }
+
+    /**
+     * 管理员删除指定用户
+     *
+     * @param id 用户ID
+     * @param httpRequest HTTP请求
+     * @return 是否成功
+     */
+    @DeleteMapping("/admin/{id}")
+    public Result<Boolean> deleteUserByAdmin(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+        String role = (String) httpRequest.getAttribute("role");
+        if (!UserRole.ADMIN.equals(role)) {
+            return Result.error(403, "权限不足");
+        }
+        userService.deleteAccount(id);
+        return Result.success("删除用户成功", true);
+    }
+
+    /**
+     * 管理员批量删除用户
+     *
+     * @param userIds 用户ID列表
+     * @param httpRequest HTTP请求
+     * @return 是否成功
+     */
+    @PostMapping("/admin/batch-delete")
+    public Result<Boolean> batchDeleteUsersByAdmin(
+            @RequestBody java.util.List<Long> userIds,
+            HttpServletRequest httpRequest) {
+        String role = (String) httpRequest.getAttribute("role");
+        if (!UserRole.ADMIN.equals(role)) {
+            return Result.error(403, "权限不足");
+        }
+        userService.deleteUsersByAdmin(userIds);
+        return Result.success("批量删除用户成功", true);
+    }
+
+    /**
+     * 管理员更新用户角色
+     *
+     * @param id 用户ID
+     * @param request 更新请求
+     * @param httpRequest HTTP请求
+     * @return 更新后的用户信息
+     */
+    @PutMapping("/admin/{id}/role")
+    public Result<User> updateUserRoleByAdmin(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRoleRequest request,
+            HttpServletRequest httpRequest) {
+        String role = (String) httpRequest.getAttribute("role");
+        if (!UserRole.ADMIN.equals(role)) {
+            return Result.error(403, "权限不足");
+        }
+        User user = userService.updateUserRoleByAdmin(id, request.getRole());
+        return Result.success("角色更新成功", user);
     }
 }

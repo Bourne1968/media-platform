@@ -77,14 +77,14 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { 
-  HomeFilled, 
-  EditPen, 
-  Document, 
-  Calendar, 
-  User, 
-  ArrowDown, 
-  SwitchButton, 
-  Setting, 
+  HomeFilled,
+  EditPen,
+  Document,
+  Calendar,
+  User,
+  ArrowDown,
+  SwitchButton,
+  Setting,
   Trophy,
   Lightning,
   Picture,
@@ -111,6 +111,8 @@ const navItems = [
   { key: 'inspiration', label: '灵感中心', icon: Star, route: '/inspiration' },
   { key: 'history', label: '创作库', icon: Document, route: '/history' },
   { key: 'calendar', label: '创作日历', icon: Calendar, route: '/calendar' },
+  // 仅管理员可见的菜单项会在 filteredNavItems 中根据 isAdmin 过滤
+  { key: 'admin', label: '管理员', icon: User, route: '/admin' },
   { key: 'settings', label: '设置', icon: Setting, route: '/settings' }
 ]
 

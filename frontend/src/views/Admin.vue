@@ -68,17 +68,36 @@
               </div>
             </template>
             <div class="type-chart">
-              <el-progress
-                v-if="statistics.typeStatistics"
-                :percentage="getTextPercentage()"
-                :format="() => `文本: ${statistics.textRecords || 0}`"
-              />
-              <el-progress
-                v-if="statistics.typeStatistics"
-                :percentage="getImagePercentage()"
-                :format="() => `图像: ${statistics.imageRecords || 0}`"
-                style="margin-top: 10px"
-              />
+              <div class="type-item">
+                <div class="type-label">
+                  <el-icon><EditPen /></el-icon>
+                  <span>文本创作</span>
+                </div>
+                <div class="type-progress">
+                  <el-progress
+                    :percentage="getTextPercentage()"
+                    :format="() => `${statistics.textRecords || 0} 条`"
+                    :color="'#409eff'"
+                    :stroke-width="24"
+                  />
+                </div>
+                <div class="type-value">{{ statistics.textRecords || 0 }}</div>
+              </div>
+              <div class="type-item" style="margin-top: 16px">
+                <div class="type-label">
+                  <el-icon><Picture /></el-icon>
+                  <span>图像创作</span>
+                </div>
+                <div class="type-progress">
+                  <el-progress
+                    :percentage="getImagePercentage()"
+                    :format="() => `${statistics.imageRecords || 0} 条`"
+                    :color="'#67c23a'"
+                    :stroke-width="24"
+                  />
+                </div>
+                <div class="type-value">{{ statistics.imageRecords || 0 }}</div>
+              </div>
             </div>
           </el-card>
 
@@ -93,7 +112,19 @@
             <div class="daily-chart">
               <el-table :data="formatDailyStatistics()" border>
                 <el-table-column prop="date" label="日期" width="150" />
-                <el-table-column prop="count" label="创作数量" />
+                <el-table-column prop="count" label="创作数量">
+                  <template #default="scope">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <el-progress 
+                        :percentage="getDailyPercentage(scope.row.count)" 
+                        :show-text="false"
+                        :stroke-width="8"
+                        style="flex: 1;"
+                      />
+                      <span style="min-width: 40px; text-align: right;">{{ scope.row.count }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
               </el-table>
             </div>
           </el-card>
@@ -103,9 +134,39 @@
       <!-- 用户管理 -->
       <el-tab-pane label="用户管理" name="users">
         <div v-loading="usersLoading" class="users-container">
-          <el-table :data="users" border style="width: 100%">
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="username" label="用户名" />
+          <!-- 搜索和筛选 -->
+          <el-form :inline="true" :model="userFilter" class="filter-form" style="margin-bottom: 20px">
+            <el-form-item label="用户名">
+              <el-input 
+                v-model="userFilter.username" 
+                placeholder="搜索用户名" 
+                clearable 
+                @clear="loadUsers"
+                @keyup.enter="loadUsers"
+                style="width: 200px"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+            <el-form-item label="角色">
+              <el-select v-model="userFilter.role" placeholder="全部角色" clearable @change="loadUsers" style="width: 150px">
+                <el-option label="管理员" value="ADMIN" />
+                <el-option label="普通用户" value="USER" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="loadUsers" :icon="Search">查询</el-button>
+              <el-button @click="resetUserFilter">重置</el-button>
+            </el-form-item>
+          </el-form>
+
+          <el-table :data="users" border style="width: 100%" @selection-change="handleUserSelectionChange">
+            <el-table-column type="selection" width="55" />
+            <el-table-column prop="id" label="ID" width="80" sortable />
+            <el-table-column prop="username" label="用户名" sortable />
+            <el-table-column prop="email" label="邮箱" show-overflow-tooltip />
             <el-table-column prop="role" label="角色" width="100">
               <template #default="scope">
                 <el-tag :type="scope.row.role === 'ADMIN' ? 'danger' : 'primary'">
@@ -113,12 +174,24 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="createTime" label="注册时间" width="180">
+            <el-table-column prop="createTime" label="注册时间" width="180" sortable>
               <template #default="scope">
                 {{ formatTime(scope.row.createTime) }}
               </template>
             </el-table-column>
+            <el-table-column label="操作" width="180" fixed="right">
+              <template #default="scope">
+                <el-button type="primary" size="small" @click="handleViewUserDetail(scope.row)">详情</el-button>
+                <el-button type="danger" size="small" @click="handleDeleteUser(scope.row.id)" :disabled="scope.row.role === 'ADMIN'">删除</el-button>
+              </template>
+            </el-table-column>
           </el-table>
+
+          <!-- 批量操作 -->
+          <div v-if="selectedUsers.length > 0" class="batch-actions" style="margin-top: 16px; padding: 12px; background: #f5f7fa; border-radius: 8px;">
+            <span style="margin-right: 16px;">已选择 {{ selectedUsers.length }} 项</span>
+            <el-button type="danger" size="small" @click="handleBatchDeleteUsers">批量删除</el-button>
+          </div>
 
           <!-- 分页 -->
           <div class="pagination-container">
@@ -153,9 +226,10 @@
             </el-form-item>
           </el-form>
 
-          <el-table :data="contentList" border style="width: 100%">
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="userId" label="用户ID" width="100" />
+          <el-table :data="contentList" border style="width: 100%" @selection-change="handleContentSelectionChange">
+            <el-table-column type="selection" width="55" />
+            <el-table-column prop="id" label="ID" width="80" sortable />
+            <el-table-column prop="userId" label="用户ID" width="100" sortable />
             <el-table-column prop="type" label="类型" width="100">
               <template #default="scope">
                 <el-tag :type="scope.row.type === 'TEXT' ? 'primary' : 'success'">
@@ -163,18 +237,25 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="prompt" label="提示词" show-overflow-tooltip />
-            <el-table-column prop="createTime" label="创建时间" width="180">
+            <el-table-column prop="prompt" label="提示词" show-overflow-tooltip min-width="200" />
+            <el-table-column prop="createTime" label="创建时间" width="180" sortable>
               <template #default="scope">
                 {{ formatTime(scope.row.createTime) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="100">
+            <el-table-column label="操作" width="180" fixed="right">
               <template #default="scope">
+                <el-button type="primary" size="small" @click="handleViewContentDetail(scope.row)">详情</el-button>
                 <el-button type="danger" size="small" @click="handleDeleteContent(scope.row.id)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
+
+          <!-- 批量操作 -->
+          <div v-if="selectedContent.length > 0" class="batch-actions" style="margin-top: 16px; padding: 12px; background: #f5f7fa; border-radius: 8px;">
+            <span style="margin-right: 16px;">已选择 {{ selectedContent.length }} 项</span>
+            <el-button type="danger" size="small" @click="handleBatchDeleteContent">批量删除</el-button>
+          </div>
 
           <!-- 分页 -->
           <div class="pagination-container">
@@ -256,17 +337,144 @@
           </el-dialog>
         </div>
       </el-tab-pane>
+
+      <!-- 系统信息 -->
+      <el-tab-pane label="系统信息" name="system">
+        <div class="system-container">
+          <el-row :gutter="20">
+            <el-col :xs="24" :sm="12" :md="8">
+              <el-card class="info-card" shadow="hover">
+                <template #header>
+                  <div class="card-header">
+                    <el-icon class="header-icon"><InfoFilled /></el-icon>
+                    <span>系统版本</span>
+                  </div>
+                </template>
+                <div class="info-item">
+                  <span class="info-label">平台版本</span>
+                  <span class="info-value">v1.0.0</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">构建时间</span>
+                  <span class="info-value">{{ new Date().toLocaleDateString('zh-CN') }}</span>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+              <el-card class="info-card" shadow="hover">
+                <template #header>
+                  <div class="card-header">
+                    <el-icon class="header-icon"><Files /></el-icon>
+                    <span>数据库信息</span>
+                  </div>
+                </template>
+                <div class="info-item">
+                  <span class="info-label">总用户数</span>
+                  <span class="info-value">{{ statistics.totalUsers || 0 }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">总记录数</span>
+                  <span class="info-value">{{ statistics.totalRecords || 0 }}</span>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="8">
+              <el-card class="info-card" shadow="hover">
+                <template #header>
+                  <div class="card-header">
+                    <el-icon class="header-icon"><Monitor /></el-icon>
+                    <span>运行状态</span>
+                  </div>
+                </template>
+                <div class="info-item">
+                  <span class="info-label">系统状态</span>
+                  <el-tag type="success">运行中</el-tag>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">运行时长</span>
+                  <span class="info-value">正常</span>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+        </div>
+      </el-tab-pane>
     </el-tabs>
+
+    <!-- 用户详情对话框 -->
+    <el-dialog v-model="userDetailDialogVisible" title="用户详情" width="600px">
+      <el-descriptions :column="2" border v-if="currentUser">
+        <el-descriptions-item label="用户ID">{{ currentUser.id }}</el-descriptions-item>
+        <el-descriptions-item label="用户名">{{ currentUser.username }}</el-descriptions-item>
+        <el-descriptions-item label="邮箱">{{ currentUser.email || '未设置' }}</el-descriptions-item>
+        <el-descriptions-item label="角色">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <el-select
+              v-model="editUserRole"
+              size="small"
+              style="width: 140px"
+              :disabled="currentUser.role === 'ADMIN'"
+            >
+              <el-option label="管理员" value="ADMIN" />
+              <el-option label="普通用户" value="USER" />
+            </el-select>
+            <el-tag :type="currentUser.role === 'ADMIN' ? 'danger' : 'primary'">
+              {{ currentUser.role === 'ADMIN' ? '当前：管理员' : '当前：普通用户' }}
+            </el-tag>
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item label="注册时间" :span="2">
+          {{ formatTime(currentUser.createTime) }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="userDetailDialogVisible = false">关闭</el-button>
+        <el-button
+          v-if="currentUser && currentUser.role !== 'ADMIN'"
+          type="primary"
+          :loading="updateUserRoleLoading"
+          @click="handleUpdateUserRole"
+        >
+          保存角色
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 内容详情对话框 -->
+    <el-dialog v-model="contentDetailDialogVisible" title="内容详情" width="800px">
+      <el-descriptions :column="1" border v-if="currentContent">
+        <el-descriptions-item label="记录ID">{{ currentContent.id }}</el-descriptions-item>
+        <el-descriptions-item label="用户ID">{{ currentContent.userId }}</el-descriptions-item>
+        <el-descriptions-item label="类型">
+          <el-tag :type="currentContent.type === 'TEXT' ? 'primary' : 'success'">
+            {{ currentContent.type === 'TEXT' ? '文本创作' : '图片生成' }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="提示词">
+          <div style="max-height: 100px; overflow-y: auto;">{{ currentContent.prompt }}</div>
+        </el-descriptions-item>
+        <el-descriptions-item label="生成内容" v-if="currentContent.content">
+          <div style="max-height: 200px; overflow-y: auto; white-space: pre-wrap;">{{ currentContent.content }}</div>
+        </el-descriptions-item>
+        <el-descriptions-item label="图片URL" v-if="currentContent.imageUrl">
+          <el-image :src="currentContent.imageUrl" style="max-width: 100%; max-height: 300px;" fit="contain" />
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatTime(currentContent.createTime) }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="contentDetailDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowUp, Plus, UserFilled, Document, EditPen, Picture, PieChart, TrendCharts, Search } from '@element-plus/icons-vue'
+import { ArrowUp, Plus, UserFilled, Document, EditPen, Picture, PieChart, TrendCharts, Search, InfoFilled, Files, Monitor } from '@element-plus/icons-vue'
 import { getStatistics } from '@/api/creation'
-import { getUserList } from '@/api/user'
-import { getRecordList, deleteRecord } from '@/api/creation'
+import { getUserList, deleteUserByAdmin, batchDeleteUsersByAdmin, updateUserRoleByAdmin } from '@/api/user'
+import { getRecordList, deleteRecord, getRecordById } from '@/api/creation'
 import { getAllTemplates, createTemplate, updateTemplate, deleteTemplate } from '@/api/template'
 
 const activeTab = ref('statistics')
@@ -292,16 +500,28 @@ const users = ref([])
 const usersPage = ref(1)
 const usersPageSize = ref(10)
 const usersTotal = ref(0)
+const selectedUsers = ref([])
+const userFilter = reactive({
+  username: '',
+  role: ''
+})
+const userDetailDialogVisible = ref(false)
+const currentUser = ref(null)
+const editUserRole = ref('')
+const updateUserRoleLoading = ref(false)
 
 // 内容列表
 const contentList = ref([])
 const contentPage = ref(1)
 const contentPageSize = ref(10)
 const contentTotal = ref(0)
+const selectedContent = ref([])
 const contentFilter = reactive({
   type: '',
   userId: ''
 })
+const contentDetailDialogVisible = ref(false)
+const currentContent = ref(null)
 
 // 模板管理
 const templatesList = ref([])
@@ -336,10 +556,17 @@ const loadStatistics = async () => {
 const loadUsers = async () => {
   usersLoading.value = true
   try {
-    const res = await getUserList({
+    const params = {
       current: usersPage.value,
       size: usersPageSize.value
-    })
+    }
+    if (userFilter.username) {
+      params.username = userFilter.username
+    }
+    if (userFilter.role) {
+      params.role = userFilter.role
+    }
+    const res = await getUserList(params)
     if (res.code === 200) {
       users.value = res.data.records || []
       usersTotal.value = res.data.total || 0
@@ -349,6 +576,121 @@ const loadUsers = async () => {
     ElMessage.error('加载用户列表失败')
   } finally {
     usersLoading.value = false
+  }
+}
+
+// 重置用户筛选
+const resetUserFilter = () => {
+  userFilter.username = ''
+  userFilter.role = ''
+  usersPage.value = 1
+  loadUsers()
+}
+
+// 用户选择变化
+const handleUserSelectionChange = (selection) => {
+  selectedUsers.value = selection
+}
+
+// 查看用户详情
+const handleViewUserDetail = (user) => {
+  currentUser.value = user
+  editUserRole.value = user.role
+  userDetailDialogVisible.value = true
+}
+
+// 更新用户角色（管理员）
+const handleUpdateUserRole = async () => {
+  if (!currentUser.value) return
+  if (currentUser.value.role === 'ADMIN') {
+    ElMessage.warning('管理员账号不支持在此处修改角色')
+    return
+  }
+  if (!editUserRole.value) {
+    ElMessage.warning('请选择角色')
+    return
+  }
+  if (editUserRole.value === currentUser.value.role) {
+    ElMessage.info('角色未发生变化')
+    return
+  }
+  try {
+    updateUserRoleLoading.value = true
+    const res = await updateUserRoleByAdmin(currentUser.value.id, editUserRole.value)
+    if (res.code === 200) {
+      ElMessage.success('角色更新成功')
+      // 同步更新当前用户和列表中的角色
+      currentUser.value.role = res.data.role
+      const index = users.value.findIndex(u => u.id === currentUser.value.id)
+      if (index !== -1) {
+        users.value[index].role = res.data.role
+      }
+    }
+  } catch (error) {
+    console.error('更新用户角色失败：', error)
+    ElMessage.error(error.response?.data?.message || '更新用户角色失败')
+  } finally {
+    updateUserRoleLoading.value = false
+  }
+}
+
+// 删除用户
+const handleDeleteUser = async (id) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这个用户吗？此操作不可恢复！', '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    const res = await deleteUserByAdmin(id)
+    if (res.code === 200) {
+      ElMessage.success('删除成功')
+      // 如果当前详情弹窗展示的是这个用户，顺便关闭
+      if (currentUser.value && currentUser.value.id === id) {
+        userDetailDialogVisible.value = false
+      }
+      loadUsers()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除用户失败：', error)
+    }
+  }
+}
+
+// 批量删除用户
+const handleBatchDeleteUsers = async () => {
+  if (selectedUsers.value.length === 0) {
+    ElMessage.warning('请选择要删除的用户')
+    return
+  }
+
+  // 过滤掉管理员账号，避免误删
+  const deletableIds = selectedUsers.value
+    .filter(user => user.role !== 'ADMIN')
+    .map(user => user.id)
+
+  if (deletableIds.length === 0) {
+    ElMessage.warning('选中的用户中不包含可删除的普通用户')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确定要删除选中的 ${deletableIds.length} 个普通用户吗？此操作不可恢复！`, '警告', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    const res = await batchDeleteUsersByAdmin(deletableIds)
+    if (res.code === 200) {
+      ElMessage.success('批量删除成功')
+      selectedUsers.value = []
+      loadUsers()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除用户失败：', error)
+    }
   }
 }
 
@@ -379,6 +721,33 @@ const loadContent = async () => {
   }
 }
 
+// 内容选择变化
+const handleContentSelectionChange = (selection) => {
+  selectedContent.value = selection
+}
+
+// 查看内容详情
+const handleViewContentDetail = async (content) => {
+  try {
+    // 如果内容信息不完整，尝试获取详情
+    if (!content.content && !content.imageUrl) {
+      const res = await getRecordById(content.id)
+      if (res.code === 200) {
+        currentContent.value = res.data
+      } else {
+        currentContent.value = content
+      }
+    } else {
+      currentContent.value = content
+    }
+    contentDetailDialogVisible.value = true
+  } catch (error) {
+    console.error('获取内容详情失败：', error)
+    currentContent.value = content
+    contentDetailDialogVisible.value = true
+  }
+}
+
 // 删除内容
 const handleDeleteContent = async (id) => {
   try {
@@ -395,6 +764,34 @@ const handleDeleteContent = async (id) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除失败：', error)
+    }
+  }
+}
+
+// 批量删除内容
+const handleBatchDeleteContent = async () => {
+  if (selectedContent.value.length === 0) {
+    ElMessage.warning('请选择要删除的记录')
+    return
+  }
+  try {
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedContent.value.length} 条记录吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    // 批量删除
+    const deletePromises = selectedContent.value.map(item => deleteRecord(item.id))
+    await Promise.all(deletePromises)
+    
+    ElMessage.success('批量删除成功')
+    selectedContent.value = []
+    loadContent()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除失败：', error)
+      ElMessage.error('批量删除失败')
     }
   }
 }
@@ -528,10 +925,20 @@ const getImagePercentage = () => {
 // 格式化每日统计
 const formatDailyStatistics = () => {
   if (!statistics.value.dailyStatistics) return []
-  return Object.entries(statistics.value.dailyStatistics).map(([date, count]) => ({
-    date,
-    count
-  }))
+  return Object.entries(statistics.value.dailyStatistics)
+    .map(([date, count]) => ({
+      date,
+      count: typeof count === 'number' ? count : 0
+    }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+}
+
+// 计算每日百分比（用于进度条显示）
+const getDailyPercentage = (count) => {
+  if (!statistics.value.dailyStatistics) return 0
+  const counts = Object.values(statistics.value.dailyStatistics).map(c => typeof c === 'number' ? c : 0)
+  const maxCount = Math.max(...counts, 1)
+  return Math.round((count / maxCount) * 100)
 }
 
 // 格式化时间
@@ -856,5 +1263,76 @@ onMounted(() => {
 :deep(.el-button--primary:hover) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.type-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.type-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  font-weight: 500;
+  color: #606266;
+}
+
+.type-progress {
+  flex: 1;
+}
+
+.type-value {
+  min-width: 60px;
+  text-align: right;
+  font-size: 18px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.info-card {
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.info-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: #909399;
+  font-size: 14px;
+}
+
+.info-value {
+  color: #303133;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.system-container {
+  min-height: 400px;
 }
 </style>

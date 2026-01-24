@@ -242,15 +242,25 @@ public class UserService {
     }
     
     /**
-     * 获取用户列表（管理员功能）
+     * 获取用户列表（管理员功能，可按用户名和角色筛选）
      * 
-     * @param current 当前页
-     * @param size 每页数量
+     * @param current  当前页
+     * @param size     每页数量
+     * @param username 用户名（可选，支持精确匹配）
+     * @param role     角色（可选，ADMIN / USER）
      * @return 分页结果
      */
-    public IPage<User> getUserList(Long current, Long size) {
+    public IPage<User> getUserList(Long current, Long size, String username, String role) {
         Page<User> page = new Page<>(current, size);
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+
+        if (username != null && !username.isEmpty()) {
+            queryWrapper.eq(User::getUsername, username);
+        }
+        if (role != null && !role.isEmpty()) {
+            queryWrapper.eq(User::getRole, role);
+        }
+
         queryWrapper.orderByDesc(User::getCreateTime);
         return userMapper.selectPage(page, queryWrapper);
     }
@@ -273,6 +283,46 @@ public class UserService {
      */
     public Long getTotalUsersCount() {
         return userMapper.selectCount(null);
+    }
+
+    /**
+     * 管理员更新用户角色
+     *
+     * @param userId  用户ID
+     * @param newRole 新角色（ADMIN / USER）
+     * @return 更新后的用户信息
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public User updateUserRoleByAdmin(Long userId, String newRole) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "用户不存在");
+        }
+
+        if (!UserRole.ADMIN.equals(newRole) && !UserRole.USER.equals(newRole)) {
+            throw new BusinessException(ResultCode.ERROR.getCode(), "非法角色类型");
+        }
+
+        user.setRole(newRole);
+        user.setUpdateTime(LocalDateTime.now());
+        userMapper.updateById(user);
+        return user;
+    }
+
+    /**
+     * 管理员批量删除用户（同时删除创作记录）
+     *
+     * @param userIds 用户ID列表
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteUsersByAdmin(java.util.List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+        for (Long userId : userIds) {
+            // 复用已有的删除逻辑
+            deleteAccount(userId);
+        }
     }
     
     /**
