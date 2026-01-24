@@ -118,21 +118,27 @@ router.beforeEach((to, from, next) => {
       return
     }
     
+    // 确保能正确读取用户信息
     const userInfo = localStorage.getItem('userInfo')
-    if (userInfo) {
+    if (!userInfo) {
+      console.warn('访问管理员页面但 userInfo 不存在，跳转到首页')
+      next('/')
+      return
+    }
+    
       try {
         const user = JSON.parse(userInfo)
+      // 严格检查角色
         if (user.role === 'ADMIN') {
           next()
         } else {
+        console.warn('访问管理员页面但用户角色不是 ADMIN，当前角色：', user.role)
           next('/workbench')
         }
       } catch (e) {
-        next('/')
-      }
-    } else {
+      console.error('解析 userInfo 失败：', e)
       next('/')
-    }
+      }
     return
   }
   
@@ -142,7 +148,7 @@ router.beforeEach((to, from, next) => {
     return
   }
   
-  next()
+    next()
 })
 
 export default router

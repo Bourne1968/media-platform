@@ -1,5 +1,28 @@
 <template>
   <div class="admin-container">
+    <!-- 页面头部 -->
+    <div class="admin-header">
+      <div class="header-left">
+        <h2 class="page-title">
+          <el-icon><Setting /></el-icon>
+          <span>管理后台</span>
+        </h2>
+        <p class="page-desc">系统数据统计与管理</p>
+      </div>
+      <div class="header-right">
+        <el-button 
+          :icon="Refresh" 
+          @click="handleRefresh" 
+          :loading="refreshing"
+          circle
+          title="刷新数据"
+        />
+        <span v-if="lastRefreshTime" class="refresh-time">
+          最后更新：{{ lastRefreshTime }}
+        </span>
+      </div>
+    </div>
+
     <el-tabs v-model="activeTab" @tab-change="handleTabChange">
       <!-- 数据统计 -->
       <el-tab-pane label="数据统计" name="statistics">
@@ -54,6 +77,54 @@
                   </div>
                   <div class="stat-value">{{ statistics.imageRecords || 0 }}</div>
                   <div class="stat-label">图像创作</div>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+
+          <!-- 额外统计卡片 -->
+          <el-row :gutter="20" class="stat-cards" style="margin-top: 20px">
+            <el-col :xs="24" :sm="12" :md="6">
+              <el-card class="stat-card stat-card-avg" shadow="hover">
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <el-icon><TrendCharts /></el-icon>
+                  </div>
+                  <div class="stat-value">{{ getAvgRecordsPerUser() }}</div>
+                  <div class="stat-label">人均创作数</div>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6">
+              <el-card class="stat-card stat-card-ratio" shadow="hover">
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <el-icon><PieChart /></el-icon>
+                  </div>
+                  <div class="stat-value">{{ getTextImageRatio() }}</div>
+                  <div class="stat-label">文本/图片比例</div>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6">
+              <el-card class="stat-card stat-card-week" shadow="hover">
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <el-icon><Document /></el-icon>
+                  </div>
+                  <div class="stat-value">{{ getWeekTotal() }}</div>
+                  <div class="stat-label">本周创作</div>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :xs="24" :sm="12" :md="6">
+              <el-card class="stat-card stat-card-month" shadow="hover">
+                <div class="stat-item">
+                  <div class="stat-icon">
+                    <el-icon><Calendar /></el-icon>
+                  </div>
+                  <div class="stat-value">{{ getMonthTotal() }}</div>
+                  <div class="stat-label">本月创作</div>
                 </div>
               </el-card>
             </el-col>
@@ -134,8 +205,10 @@
       <!-- 用户管理 -->
       <el-tab-pane label="用户管理" name="users">
         <div v-loading="usersLoading" class="users-container">
-          <!-- 搜索和筛选 -->
-          <el-form :inline="true" :model="userFilter" class="filter-form" style="margin-bottom: 20px">
+          <!-- 工具栏 -->
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <el-form :inline="true" :model="userFilter" class="filter-form">
             <el-form-item label="用户名">
               <el-input 
                 v-model="userFilter.username" 
@@ -156,11 +229,23 @@
                 <el-option label="普通用户" value="USER" />
               </el-select>
             </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="loadUsers" :icon="Search">查询</el-button>
-              <el-button @click="resetUserFilter">重置</el-button>
-            </el-form-item>
-          </el-form>
+                <el-form-item>
+                  <el-button type="primary" @click="loadUsers" :icon="Search">查询</el-button>
+                  <el-button @click="resetUserFilter">重置</el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+            <div class="toolbar-right">
+              <el-button 
+                type="success" 
+                :icon="Download" 
+                @click="handleExportUsers"
+                :disabled="users.length === 0"
+              >
+                导出数据
+              </el-button>
+            </div>
+          </div>
 
           <el-table :data="users" border style="width: 100%" @selection-change="handleUserSelectionChange">
             <el-table-column type="selection" width="55" />
@@ -179,10 +264,18 @@
                 {{ formatTime(scope.row.createTime) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="操作" width="220" fixed="right">
               <template #default="scope">
-                <el-button type="primary" size="small" @click="handleViewUserDetail(scope.row)">详情</el-button>
-                <el-button type="danger" size="small" @click="handleDeleteUser(scope.row.id)" :disabled="scope.row.role === 'ADMIN'">删除</el-button>
+                <el-button type="primary" size="small" :icon="Search" @click="handleViewUserDetail(scope.row)">详情</el-button>
+                <el-button 
+                  type="danger" 
+                  size="small" 
+                  :icon="Delete"
+                  @click="handleDeleteUser(scope.row.id)" 
+                  :disabled="scope.row.role === 'ADMIN'"
+                >
+                  删除
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -211,7 +304,10 @@
       <!-- 内容管理 -->
       <el-tab-pane label="内容管理" name="content">
         <div v-loading="contentLoading" class="content-container">
-          <el-form :inline="true" :model="contentFilter" class="filter-form" style="margin-bottom: 20px">
+          <!-- 工具栏 -->
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <el-form :inline="true" :model="contentFilter" class="filter-form">
             <el-form-item label="类型">
               <el-select v-model="contentFilter.type" placeholder="全部类型" clearable @change="loadContent" style="width: 200px">
                 <el-option label="文本创作" value="TEXT" />
@@ -221,10 +317,23 @@
             <el-form-item label="用户ID">
               <el-input v-model="contentFilter.userId" placeholder="用户ID" clearable @clear="loadContent" style="width: 200px" />
             </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="loadContent" :icon="Search">查询</el-button>
-            </el-form-item>
-          </el-form>
+                <el-form-item>
+                  <el-button type="primary" @click="loadContent" :icon="Search">查询</el-button>
+                  <el-button @click="resetContentFilter">重置</el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+            <div class="toolbar-right">
+              <el-button 
+                type="success" 
+                :icon="Download" 
+                @click="handleExportContent"
+                :disabled="contentList.length === 0"
+              >
+                导出数据
+              </el-button>
+            </div>
+          </div>
 
           <el-table :data="contentList" border style="width: 100%" @selection-change="handleContentSelectionChange">
             <el-table-column type="selection" width="55" />
@@ -243,10 +352,10 @@
                 {{ formatTime(scope.row.createTime) }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column label="操作" width="220" fixed="right">
               <template #default="scope">
-                <el-button type="primary" size="small" @click="handleViewContentDetail(scope.row)">详情</el-button>
-                <el-button type="danger" size="small" @click="handleDeleteContent(scope.row.id)">删除</el-button>
+                <el-button type="primary" size="small" :icon="Search" @click="handleViewContentDetail(scope.row)">详情</el-button>
+                <el-button type="danger" size="small" :icon="Delete" @click="handleDeleteContent(scope.row.id)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -471,7 +580,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowUp, Plus, UserFilled, Document, EditPen, Picture, PieChart, TrendCharts, Search, InfoFilled, Files, Monitor } from '@element-plus/icons-vue'
+import { ArrowUp, Plus, UserFilled, Document, EditPen, Picture, PieChart, TrendCharts, Search, InfoFilled, Files, Monitor, Refresh, Download, Setting, Calendar, Delete } from '@element-plus/icons-vue'
 import { getStatistics } from '@/api/creation'
 import { getUserList, deleteUserByAdmin, batchDeleteUsersByAdmin, updateUserRoleByAdmin } from '@/api/user'
 import { getRecordList, deleteRecord, getRecordById } from '@/api/creation'
@@ -482,6 +591,8 @@ const statisticsLoading = ref(false)
 const usersLoading = ref(false)
 const contentLoading = ref(false)
 const templatesLoading = ref(false)
+const refreshing = ref(false)
+const lastRefreshTime = ref('')
 
 // 统计数据
 const statistics = ref({
@@ -585,6 +696,14 @@ const resetUserFilter = () => {
   userFilter.role = ''
   usersPage.value = 1
   loadUsers()
+}
+
+// 重置内容筛选
+const resetContentFilter = () => {
+  contentFilter.type = ''
+  contentFilter.userId = ''
+  contentPage.value = 1
+  loadContent()
 }
 
 // 用户选择变化
@@ -906,6 +1025,7 @@ const handleTabChange = (name) => {
   } else if (name === 'templates') {
     loadTemplates()
   }
+  updateRefreshTime()
 }
 
 // 计算文本百分比
@@ -941,6 +1061,54 @@ const getDailyPercentage = (count) => {
   return Math.round((count / maxCount) * 100)
 }
 
+// 计算人均创作数
+const getAvgRecordsPerUser = () => {
+  const totalUsers = statistics.value.totalUsers || 1
+  const totalRecords = statistics.value.totalRecords || 0
+  return totalUsers > 0 ? (totalRecords / totalUsers).toFixed(1) : '0.0'
+}
+
+// 计算文本/图片比例
+const getTextImageRatio = () => {
+  const text = statistics.value.textRecords || 0
+  const image = statistics.value.imageRecords || 0
+  if (image === 0) return text > 0 ? '∞' : '0:0'
+  const ratio = (text / image).toFixed(1)
+  return `${ratio}:1`
+}
+
+// 计算本周创作总数
+const getWeekTotal = () => {
+  if (!statistics.value.dailyStatistics) return 0
+  const today = new Date()
+  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+  
+  let total = 0
+  Object.entries(statistics.value.dailyStatistics).forEach(([date, count]) => {
+    const dateObj = new Date(date)
+    if (dateObj >= weekAgo && dateObj <= today) {
+      total += typeof count === 'number' ? count : 0
+    }
+  })
+  return total
+}
+
+// 计算本月创作总数
+const getMonthTotal = () => {
+  if (!statistics.value.dailyStatistics) return 0
+  const today = new Date()
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+  
+  let total = 0
+  Object.entries(statistics.value.dailyStatistics).forEach(([date, count]) => {
+    const dateObj = new Date(date)
+    if (dateObj >= monthStart && dateObj <= today) {
+      total += typeof count === 'number' ? count : 0
+    }
+  })
+  return total
+}
+
 // 格式化时间
 const formatTime = (timeStr) => {
   if (!timeStr) return ''
@@ -954,18 +1122,192 @@ const formatTime = (timeStr) => {
   })
 }
 
+// 刷新数据
+const handleRefresh = async () => {
+  refreshing.value = true
+  try {
+    if (activeTab.value === 'statistics') {
+      await loadStatistics()
+    } else if (activeTab.value === 'users') {
+      await loadUsers()
+    } else if (activeTab.value === 'content') {
+      await loadContent()
+    } else if (activeTab.value === 'templates') {
+      await loadTemplates()
+    }
+    updateRefreshTime()
+    ElMessage.success('刷新成功')
+  } catch (error) {
+    ElMessage.error('刷新失败')
+  } finally {
+    refreshing.value = false
+  }
+}
+
+// 更新刷新时间
+const updateRefreshTime = () => {
+  const now = new Date()
+  lastRefreshTime.value = now.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+}
+
+// 导出用户数据
+const handleExportUsers = () => {
+  if (users.value.length === 0) {
+    ElMessage.warning('没有可导出的数据')
+    return
+  }
+  
+  // 构建CSV内容
+  const headers = ['ID', '用户名', '邮箱', '角色', '注册时间']
+  const rows = users.value.map(user => [
+    user.id,
+    user.username,
+    user.email || '',
+    user.role === 'ADMIN' ? '管理员' : '普通用户',
+    formatTime(user.createTime)
+  ])
+  
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+  ].join('\n')
+  
+  // 添加BOM以支持中文
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', `用户列表_${new Date().toISOString().split('T')[0]}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  
+  ElMessage.success('导出成功')
+}
+
+// 导出内容数据
+const handleExportContent = () => {
+  if (contentList.value.length === 0) {
+    ElMessage.warning('没有可导出的数据')
+    return
+  }
+  
+  // 构建CSV内容
+  const headers = ['ID', '用户ID', '类型', '提示词', '创建时间']
+  const rows = contentList.value.map(content => [
+    content.id,
+    content.userId,
+    content.type === 'TEXT' ? '文本创作' : '图片生成',
+    (content.prompt || '').replace(/"/g, '""').substring(0, 100), // 限制长度并转义引号
+    formatTime(content.createTime)
+  ])
+  
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+  ].join('\n')
+  
+  // 添加BOM以支持中文
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', `创作记录_${new Date().toISOString().split('T')[0]}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  
+  ElMessage.success('导出成功')
+}
+
 onMounted(() => {
   loadStatistics()
+  updateRefreshTime()
 })
 </script>
 
 <style scoped>
 .admin-container {
   padding: 24px;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   background: linear-gradient(to bottom, #f8f9ff 0%, #ffffff 100%);
   min-height: calc(100vh - 60px);
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.header-left {
+  flex: 1;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.page-title .el-icon {
+  color: #667eea;
+  font-size: 28px;
+}
+
+.page-desc {
+  margin: 0;
+  color: #909399;
+  font-size: 14px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.refresh-time {
+  font-size: 13px;
+  color: #909399;
+  white-space: nowrap;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9ff;
+  border-radius: 8px;
+}
+
+.toolbar-left {
+  flex: 1;
+}
+
+.toolbar-right {
+  display: flex;
+  gap: 12px;
 }
 
 :deep(.el-tabs__header) {
@@ -1081,6 +1423,58 @@ onMounted(() => {
 
 .stat-card-image .stat-icon {
   background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  color: #fff;
+}
+
+.stat-card-avg {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%);
+}
+
+.stat-card-avg::before {
+  color: #f59e0b;
+}
+
+.stat-card-avg .stat-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  color: #fff;
+}
+
+.stat-card-ratio {
+  background: linear-gradient(135deg, #fef3f2 0%, #ffffff 100%);
+}
+
+.stat-card-ratio::before {
+  color: #ef4444;
+}
+
+.stat-card-ratio .stat-icon {
+  background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+  color: #fff;
+}
+
+.stat-card-week {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 100%);
+}
+
+.stat-card-week::before {
+  color: #14b8a6;
+}
+
+.stat-card-week .stat-icon {
+  background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%);
+  color: #fff;
+}
+
+.stat-card-month {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
+}
+
+.stat-card-month::before {
+  color: #8b5cf6;
+}
+
+.stat-card-month .stat-icon {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   color: #fff;
 }
 

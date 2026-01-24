@@ -44,11 +44,15 @@
             </div>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item v-if="isAdmin" command="admin" divided>
+                  <el-icon><User /></el-icon>
+                  管理员后台
+                </el-dropdown-item>
                 <el-dropdown-item command="settings">
                   <el-icon><Setting /></el-icon>
                   个人设置
                 </el-dropdown-item>
-                <el-dropdown-item command="logout">
+                <el-dropdown-item command="logout" divided>
                   <el-icon><SwitchButton /></el-icon>
                   退出登录
                 </el-dropdown-item>
@@ -111,8 +115,6 @@ const navItems = [
   { key: 'inspiration', label: '灵感中心', icon: Star, route: '/inspiration' },
   { key: 'history', label: '创作库', icon: Document, route: '/history' },
   { key: 'calendar', label: '创作日历', icon: Calendar, route: '/calendar' },
-  // 仅管理员可见的菜单项会在 filteredNavItems 中根据 isAdmin 过滤
-  { key: 'admin', label: '管理员', icon: User, route: '/admin' },
   { key: 'settings', label: '设置', icon: Setting, route: '/settings' }
 ]
 
@@ -124,10 +126,7 @@ const userInitial = computed(() => {
 })
 
 const filteredNavItems = computed(() => {
-  if (isAdmin.value) {
-    return navItems
-  }
-  return navItems.filter(item => item.key !== 'admin')
+  return navItems
 })
 
 // 根据路由更新激活的导航项
@@ -153,6 +152,7 @@ const updateActiveNav = () => {
     } else if (path.startsWith('/settings')) {
       activeNav.value = 'settings'
     }
+    // 管理员页面不显示在侧边栏，所以不需要设置 activeNav
   }
 }
 
@@ -164,7 +164,12 @@ const handleNavClick = (item) => {
 }
 
 const handleUserCommand = (command) => {
-  if (command === 'settings') {
+  if (command === 'admin') {
+    // 直接导航到管理员页面，路由守卫会处理权限检查
+    router.push('/admin').catch((err) => {
+      console.error('导航到管理员页面失败：', err)
+    })
+  } else if (command === 'settings') {
     router.push('/settings')
   } else if (command === 'logout') {
     ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -192,17 +197,17 @@ onMounted(() => {
   
   // 加载用户信息
   const loadUserInfo = () => {
-    const userInfo = localStorage.getItem('userInfo')
-    if (userInfo) {
-      try {
-        const user = JSON.parse(userInfo)
-        username.value = user.username || '用户'
-        isAdmin.value = user.role === 'ADMIN'
+  const userInfo = localStorage.getItem('userInfo')
+  if (userInfo) {
+    try {
+      const user = JSON.parse(userInfo)
+      username.value = user.username || '用户'
+      isAdmin.value = user.role === 'ADMIN'
         userTier.value = user.tier || '普通用户'
         userAvatar.value = user.avatar || ''
-      } catch (e) {
-        username.value = '用户'
-        isAdmin.value = false
+    } catch (e) {
+      username.value = '用户'
+      isAdmin.value = false
         userTier.value = '普通用户'
         userAvatar.value = ''
       }
