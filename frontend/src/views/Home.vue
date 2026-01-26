@@ -153,7 +153,7 @@
           <el-icon><Bell /></el-icon>
           节日热点提醒
         </h2>
-        <el-button text @click="loadUpcomingEvents" :loading="eventsLoading">
+        <el-button text @click="loadUpcomingEvents(true)" :loading="eventsLoading">
           <el-icon><Refresh /></el-icon>
           刷新
         </el-button>
@@ -292,6 +292,8 @@ const refreshTopics = async () => {
       
       if (newTopics.length > 0) {
         hotTopics.value = newTopics
+        // 保存到缓存
+        sessionStorage.setItem('homeHotTopics', JSON.stringify(hotTopics.value))
         ElMessage.success('话题已刷新')
       } else {
         ElMessage.warning('未获取到新话题，请稍后再试')
@@ -308,8 +310,21 @@ const refreshTopics = async () => {
 }
 
 // 加载节日热点提醒（实时获取）
-const loadUpcomingEvents = async () => {
+const loadUpcomingEvents = async (forceRefresh = false) => {
   if (eventsLoading.value) return
+  
+  // 如果不是强制刷新，先尝试从缓存加载
+  if (!forceRefresh) {
+    const cachedEvents = sessionStorage.getItem('homeUpcomingEvents')
+    if (cachedEvents) {
+      try {
+        upcomingEvents.value = JSON.parse(cachedEvents)
+        return
+      } catch (e) {
+        console.error('加载缓存事件失败:', e)
+      }
+    }
+  }
   
   eventsLoading.value = true
   try {
@@ -389,14 +404,20 @@ const loadUpcomingEvents = async () => {
         loadDefaultEvents()
       } else {
         upcomingEvents.value = events
+        // 保存到缓存
+        sessionStorage.setItem('homeUpcomingEvents', JSON.stringify(upcomingEvents.value))
       }
     } else {
       loadDefaultEvents()
+      // 保存到缓存
+      sessionStorage.setItem('homeUpcomingEvents', JSON.stringify(upcomingEvents.value))
     }
   } catch (error) {
     console.error('加载节日热点失败:', error)
     // 如果AI加载失败，使用默认数据
     loadDefaultEvents()
+    // 保存到缓存
+    sessionStorage.setItem('homeUpcomingEvents', JSON.stringify(upcomingEvents.value))
   } finally {
     eventsLoading.value = false
   }
@@ -595,6 +616,8 @@ const generateInspiration = async () => {
         title: lines[0] || '创作灵感',
         description: lines.length > 1 ? lines.slice(1).join('\n') : content
       }
+      // 保存到缓存
+      sessionStorage.setItem('homeCurrentInspiration', JSON.stringify(currentInspiration.value))
     } else {
       // 如果AI返回格式不正确，使用预设灵感
       throw new Error('AI返回格式不正确')
@@ -617,6 +640,8 @@ const generateInspiration = async () => {
       }
     ]
     currentInspiration.value = presetInspirations[Math.floor(Math.random() * presetInspirations.length)]
+    // 保存到缓存
+    sessionStorage.setItem('homeCurrentInspiration', JSON.stringify(currentInspiration.value))
   } finally {
     inspirationLoading.value = false
   }
@@ -660,9 +685,61 @@ const getTagType = (tag) => {
   return typeMap[tag] || 'info'
 }
 
+// 检查是否是首次登录（本次会话）
+const isFirstLoadInSession = () => {
+  const flag = sessionStorage.getItem('homeDataLoaded')
+  if (!flag) {
+    sessionStorage.setItem('homeDataLoaded', 'true')
+    return true
+  }
+  return false
+}
+
+// 从缓存加载数据
+const loadCachedData = () => {
+  try {
+    // 加载缓存的节日热点
+    const cachedEvents = sessionStorage.getItem('homeUpcomingEvents')
+    if (cachedEvents) {
+      upcomingEvents.value = JSON.parse(cachedEvents)
+    }
+    
+    // 加载缓存的随机灵感
+    const cachedInspiration = sessionStorage.getItem('homeCurrentInspiration')
+    if (cachedInspiration) {
+      currentInspiration.value = JSON.parse(cachedInspiration)
+    }
+    
+    // 加载缓存的热门话题
+    const cachedTopics = sessionStorage.getItem('homeHotTopics')
+    if (cachedTopics) {
+      hotTopics.value = JSON.parse(cachedTopics)
+    }
+  } catch (e) {
+    console.error('加载缓存数据失败:', e)
+  }
+}
+
+// 保存数据到缓存
+const saveDataToCache = () => {
+  try {
+    if (upcomingEvents.value.length > 0) {
+      sessionStorage.setItem('homeUpcomingEvents', JSON.stringify(upcomingEvents.value))
+    }
+    if (currentInspiration.value) {
+      sessionStorage.setItem('homeCurrentInspiration', JSON.stringify(currentInspiration.value))
+    }
+    if (hotTopics.value.length > 0) {
+      sessionStorage.setItem('homeHotTopics', JSON.stringify(hotTopics.value))
+    }
+  } catch (e) {
+    console.error('保存缓存数据失败:', e)
+  }
+}
+
 onMounted(async () => {
   // 加载用户信息
-  const userInfo = localStorage.getItem('userInfo')
+  const userInfo = sessionStorage.getItem('userInfo')
   if (userInfo) {
     try {
       const user = JSON.parse(userInfo)
@@ -680,18 +757,29 @@ onMounted(async () => {
     totalWords: 15680
   }
   
-  // 加载节日热点提醒（实时获取）- 使用try-catch确保不会阻塞页面
-  try {
-    await loadUpcomingEvents()
-  } catch (error) {
-    console.error('加载节日热点失败:', error)
-  }
+  // 检查是否是首次加载（本次会话）
+  const isFirstLoad = isFirstLoadInSession()
   
-  // 自动生成随机灵感 - 使用try-catch确保不会阻塞页面
-  try {
-    await generateInspiration()
-  } catch (error) {
-    console.error('生成随机灵感失败:', error)
+  if (isFirstLoad) {
+    // 首次加载：刷新数据
+    // 加载节日热点提醒（实时获取）- 使用try-catch确保不会阻塞页面
+    try {
+      await loadUpcomingEvents(true) // 强制刷新
+      saveDataToCache()
+    } catch (error) {
+      console.error('加载节日热点失败:', error)
+    }
+    
+    // 自动生成随机灵感 - 使用try-catch确保不会阻塞页面
+    try {
+      await generateInspiration()
+      saveDataToCache()
+    } catch (error) {
+      console.error('生成随机灵感失败:', error)
+    }
+  } else {
+    // 非首次加载：从缓存恢复数据
+    loadCachedData()
   }
   
   // 不自动刷新话题，让用户手动刷新

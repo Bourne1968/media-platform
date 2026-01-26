@@ -29,7 +29,7 @@
         
         <div v-if="currentStep === 1" class="step-content">
           <el-icon :size="60" color="#667eea"><EditPen /></el-icon>
-          <h4>创作工作台</h4>
+          <h4>AI文案生成页</h4>
           <p>在这里您可以：</p>
           <ul>
             <li>生成文本内容（单条文案、爆款标题、视频脚本）</li>
@@ -82,7 +82,7 @@ const currentStep = ref(0)
 
 const checkFirstVisit = () => {
   // 只在已登录时显示引导
-  const token = localStorage.getItem('token')
+  const token = sessionStorage.getItem('token')
   if (!token) {
     return
   }

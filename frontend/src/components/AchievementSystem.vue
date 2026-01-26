@@ -153,7 +153,7 @@ const unlockedCount = computed(() => achievements.value.filter(a => a.unlocked).
 const checkAchievements = async () => {
   try {
     // 检查是否已登录
-    const token = localStorage.getItem('token')
+    const token = sessionStorage.getItem('token')
     if (!token) {
       return
     }

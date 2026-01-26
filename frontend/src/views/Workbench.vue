@@ -145,7 +145,11 @@
           <div>
             <div class="title-medium">生成结果</div>
             <div class="caption" v-if="previewStatus === 'success'">
-              为你生成了 {{ resultCount }} 条{{ form.textMode === 'titles' ? '标题' : '内容' }}
+              为你生成了 {{ resultCount }} 条{{ 
+                form.textMode === 'titles' ? '标题' : 
+                form.textMode === 'comment' ? '评论' : 
+                '内容' 
+              }}
             </div>
           </div>
           <div class="preview-actions">
@@ -172,7 +176,11 @@
             <div class="loading-state">
               <div class="emoji">⚡</div>
               <div class="title-medium">AI 创作中...</div>
-              <div class="caption">正在为你生成 {{ form.count }} 条{{ form.textMode === 'titles' ? '爆款标题' : '内容' }}</div>
+              <div class="caption">正在为你生成 {{ form.count }} 条{{ 
+                form.textMode === 'titles' ? '爆款标题' : 
+                form.textMode === 'comment' ? '互动评论' : 
+                '内容' 
+              }}</div>
               <el-progress :percentage="progress" :stroke-width="10" status="success" />
               <el-skeleton :rows="4" animated />
             </div>
@@ -198,8 +206,9 @@
 
           <template v-else>
             <div class="result-list">
+              <!-- 标题模式 -->
+              <template v-if="form.textMode === 'titles'">
               <div
-                v-if="form.textMode === 'titles'"
                 v-for="(title, index) in generatedTitles"
                 :key="index"
                 class="result-card"
@@ -222,12 +231,45 @@
                   <el-button size="small" text :icon="Refresh" @click.stop="regenerateTitle(index)">重生成</el-button>
                 </div>
               </div>
+              </template>
 
-              <div v-else class="result-card">
+              <!-- 多条文案显示 -->
+              <template v-else-if="generatedContents.length > 0">
+                <div
+                  v-for="(item, index) in generatedContents"
+                  :key="index"
+                  class="result-card"
+                >
+                  <div class="result-head">
+                    <div class="result-index">{{ item.index }}</div>
+                    <div class="result-title">
+                      {{ 
+                        form.textMode === 'script' ? '视频脚本' : 
+                        form.textMode === 'comment' ? '互动评论' : 
+                        '创作文案' 
+                      }} #{{ item.index }}
+                    </div>
+                    <div class="rating">⭐⭐⭐⭐⭐</div>
+                  </div>
+                  <div class="result-content">{{ item.content }}</div>
+                  <div class="result-actions">
+                    <el-button size="small" text :icon="CopyDocument" @click.stop="copyContent(item.content)">复制</el-button>
+                    <el-button size="small" text :icon="DocumentAdd" @click.stop="saveContent(item.content)">保存</el-button>
+                  </div>
+                </div>
+              </template>
+
+              <!-- 单条文案显示 -->
+              <template v-else-if="generatedContent">
+                <div class="result-card">
                 <div class="result-head">
                   <div class="result-index">✓</div>
                   <div class="result-title">
-                    {{ form.textMode === 'script' ? '视频脚本' : '创作文案' }}
+                      {{ 
+                        form.textMode === 'script' ? '视频脚本' : 
+                        form.textMode === 'comment' ? '互动评论' : 
+                        '创作文案' 
+                      }}
                   </div>
                   <div class="rating">⭐⭐⭐⭐⭐</div>
                 </div>
@@ -237,8 +279,9 @@
                   <el-button size="small" text :icon="DocumentAdd" @click.stop="handleSave">保存</el-button>
                 </div>
               </div>
+              </template>
 
-              <div class="result-footer">
+              <div class="result-footer" v-if="hasResult">
                 <el-button type="primary" plain :icon="Refresh" @click="handleGenerate">
                   再生成 {{ form.count }} 条
                 </el-button>
@@ -280,6 +323,7 @@ const route = useRoute()
 const generating = ref(false)
 const saving = ref(false)
 const generatedContent = ref('')
+const generatedContents = ref([]) // 存储多条文案内容
 const generatedTitles = ref([])
 const selectedTitleIndex = ref(-1)
 const advancedCollapse = ref([])
@@ -301,7 +345,7 @@ const styleOptions = [
   { value: 'direct', label: '简洁直接', desc: '适合快消、电商' }
 ]
 
-const countOptions = [1, 5, 10, 20]
+const countOptions = [1, 3, 5]
 const wordRange = ref([120, 240])
 
 const form = reactive({
@@ -315,12 +359,17 @@ const form = reactive({
 })
 
 const hasResult = computed(
-  () => generatedContent.value || generatedTitles.value.length > 0
+  () => generatedContent.value || generatedContents.value.length > 0 || generatedTitles.value.length > 0
 )
 
-const resultCount = computed(() =>
-  form.textMode === 'titles' ? generatedTitles.value.length : generatedContent.value ? 1 : 0
-)
+const resultCount = computed(() => {
+  if (form.textMode === 'titles') {
+    return generatedTitles.value.length
+  } else {
+    // 如果有多条内容，返回多条；否则返回单条
+    return generatedContents.value.length > 0 ? generatedContents.value.length : (generatedContent.value ? 1 : 0)
+  }
+})
 
 
 const previewStatus = computed(() => {
@@ -332,7 +381,16 @@ const previewStatus = computed(() => {
 
 const selectCreationType = (value) => {
   form.type = value
-  form.textMode = value === 'titles' ? 'titles' : value === 'script' ? 'script' : 'single'
+  // 根据类型设置 textMode，comment 类型也单独处理
+  if (value === 'titles') {
+    form.textMode = 'titles'
+  } else if (value === 'script') {
+    form.textMode = 'script'
+  } else if (value === 'comment') {
+    form.textMode = 'comment'
+  } else {
+    form.textMode = 'single'
+  }
   resetResult()
 }
 
@@ -356,7 +414,7 @@ const getPromptPlaceholder = () => {
   return '请输入你的创作提示词，例如：写一个关于春天的短视频文案'
 }
 
-const buildPrompt = () => {
+const buildPrompt = (isMultiple = false) => {
   const base = form.prompt.trim()
   const styleText = styleOptions.find((item) => item.value === form.styleTemplate)?.label || ''
   const range = `${wordRange.value[0]}-${wordRange.value[1]} 字`
@@ -369,11 +427,23 @@ const buildPrompt = () => {
   if (form.textMode === 'script') {
     return `请为以下主题创作一个短视频脚本，包含开场、主体、结尾三个部分，总字数控制在${range}，语气与风格为「${styleText}」。\n${platformText}\n${keywordText}\n主题：${base}\n请结构化输出。`
   }
+  if (form.textMode === 'comment') {
+    // 评论模式：生成互动评论内容
+    if (isMultiple && form.count > 1) {
+      return `请为以下话题创作 ${form.count} 条互动评论，每条评论字数控制在${range}，语气与风格为「${styleText}」，要求：真实自然、有互动感、能引发共鸣。\n${platformText}\n${keywordText}\n话题：${base}\n请创作真实、有互动感的评论内容。`
+    }
+    return `请为以下话题创作一条互动评论，字数控制在${range}，语气与风格为「${styleText}」，要求：真实自然、有互动感、能引发共鸣。\n${platformText}\n${keywordText}\n话题：${base}`
+  }
+  // 文案模式：如果生成多条，在 prompt 中说明
+  if (isMultiple && form.count > 1) {
+    return `请基于以下需求创作一篇文案，字数控制在${range}，语气与风格为「${styleText}」。\n${platformText}\n${keywordText}\n需求：${base}\n请创作一篇完整、独立的文案。`
+  }
   return `请基于以下需求创作一篇文案，字数控制在${range}，语气与风格为「${styleText}」。\n${platformText}\n${keywordText}\n需求：${base}`
 }
 
 const resetResult = () => {
   generatedContent.value = ''
+  generatedContents.value = []
   generatedTitles.value = []
   selectedTitleIndex.value = -1
   errorMessage.value = ''
@@ -388,13 +458,14 @@ const handleGenerate = async () => {
   errorMessage.value = ''
   resetResult()
   try {
+    if (form.textMode === 'titles') {
+      // 标题模式：一次生成多个标题
     const prompt = buildPrompt()
     const res = await generateText({
       prompt,
       style: form.styleTemplate
     })
     if (res.code === 200) {
-      if (form.textMode === 'titles') {
         const content = res.data.content
         const titles = content
           .split('\n')
@@ -403,13 +474,58 @@ const handleGenerate = async () => {
           .slice(0, form.count)
         generatedTitles.value = titles.length ? titles : [content]
         ElMessage.success(`成功生成 ${generatedTitles.value.length} 个标题！`)
+        progress.value = 100
       } else {
+        throw new Error(res.message || '生成失败')
+      }
+    } else {
+      // 文案/脚本模式：如果选择多条，循环生成
+      if (form.count > 1) {
+        generatedContents.value = []
+        let successCount = 0
+        for (let i = 0; i < form.count; i++) {
+          try {
+            const prompt = buildPrompt(true)
+            const res = await generateText({
+              prompt,
+              style: form.styleTemplate
+            })
+            if (res.code === 200) {
+              generatedContents.value.push({
+                index: i + 1,
+                content: res.data.content
+              })
+              successCount++
+              // 更新进度
+              progress.value = Math.min(30 + Math.floor((successCount / form.count) * 70), 100)
+            } else {
+              console.warn(`第 ${i + 1} 条生成失败：`, res.message)
+            }
+          } catch (err) {
+            console.error(`第 ${i + 1} 条生成失败：`, err)
+          }
+        }
+        if (successCount > 0) {
+          ElMessage.success(`成功生成 ${successCount} 条文案！`)
+          progress.value = 100
+        } else {
+          throw new Error('所有文案生成失败，请稍后重试')
+        }
+      } else {
+        // 单条生成
+        const prompt = buildPrompt()
+        const res = await generateText({
+          prompt,
+          style: form.styleTemplate
+        })
+        if (res.code === 200) {
         generatedContent.value = res.data.content
         ElMessage.success('文案生成成功！')
-      }
       progress.value = 100
     } else {
       throw new Error(res.message || '生成失败')
+        }
+      }
     }
   } catch (error) {
     console.error('生成失败：', error)
@@ -426,15 +542,80 @@ const handleGenerate = async () => {
 const handleSave = async () => {
   saving.value = true
   try {
-    const recordData = {
-      type: form.textMode === 'titles' ? 'TEXT' : 'TEXT',
-      prompt: form.prompt,
-      styleTemplate: form.styleTemplate || null
-    }
     if (form.textMode === 'titles') {
-      recordData.resultContent = generatedTitles.value.join('\n')
-    } else {
-      recordData.resultContent = generatedContent.value
+      // 保存所有标题
+    const recordData = {
+        type: 'TEXT',
+      prompt: form.prompt,
+        styleTemplate: form.styleTemplate || null,
+        resultContent: generatedTitles.value.join('\n')
+      }
+      const res = await createRecord(recordData, false)
+      if (res.code === 200) {
+        ElMessage.success('保存成功！')
+      }
+    } else if (generatedContents.value.length > 0) {
+      // 保存所有多条文案
+      for (const item of generatedContents.value) {
+        const recordData = {
+          type: 'TEXT',
+          prompt: form.prompt,
+          styleTemplate: form.styleTemplate || null,
+          resultContent: item.content
+        }
+        await createRecord(recordData, false)
+      }
+      ElMessage.success(`成功保存 ${generatedContents.value.length} 条文案！`)
+    } else if (generatedContent.value) {
+      // 保存单条文案
+      const recordData = {
+        type: 'TEXT',
+        prompt: form.prompt,
+        styleTemplate: form.styleTemplate || null,
+        resultContent: generatedContent.value
+    }
+    const res = await createRecord(recordData, false)
+    if (res.code === 200) {
+      ElMessage.success('保存成功！')
+      }
+    }
+  } catch (error) {
+    console.error('保存失败：', error)
+    ElMessage.error('保存失败，请重试')
+  } finally {
+    saving.value = false
+  }
+}
+
+const handleCopy = () => {
+  if (!hasResult.value) return
+  let text = ''
+  if (form.textMode === 'titles') {
+    text = generatedTitles.value.join('\n')
+  } else if (generatedContents.value.length > 0) {
+    text = generatedContents.value.map(item => `文案 ${item.index}：\n${item.content}`).join('\n\n')
+  } else {
+    text = generatedContent.value
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    ElMessage.success('已复制到剪贴板')
+  })
+}
+
+const copyContent = (content) => {
+  navigator.clipboard.writeText(content).then(() => {
+    ElMessage.success('文案已复制')
+  })
+}
+
+const saveContent = async (content) => {
+  saving.value = true
+  try {
+    const recordData = {
+      type: 'TEXT',
+      prompt: form.prompt,
+      styleTemplate: form.styleTemplate || null,
+      resultContent: content
     }
     const res = await createRecord(recordData, false)
     if (res.code === 200) {
@@ -445,15 +626,6 @@ const handleSave = async () => {
   } finally {
     saving.value = false
   }
-}
-
-const handleCopy = () => {
-  if (!hasResult.value) return
-  const text =
-    form.textMode === 'titles' ? generatedTitles.value.join('\n') : generatedContent.value
-  navigator.clipboard.writeText(text).then(() => {
-    ElMessage.success('已复制到剪贴板')
-  })
 }
 
 const selectTitle = (title, index) => {
@@ -521,6 +693,7 @@ onMounted(() => {
   padding: 20px;
   height: calc(100vh - 20px);
   overflow: hidden;
+  align-items: start;
 }
 
 .left-panel {
@@ -537,7 +710,9 @@ onMounted(() => {
   background: var(--card-bg);
   border-radius: 16px;
   padding: 24px;
-  min-height: calc(100vh - 20px);
+  height: calc(100vh - 20px);
+  overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   transition: background-color 0.3s ease;
 }
@@ -848,7 +1023,6 @@ onMounted(() => {
   border: 1px solid var(--border-light);
   border-radius: 12px;
   padding: 20px;
-  min-height: calc(100vh - 180px);
   background: var(--card-bg);
   transition: all 0.3s ease;
 }

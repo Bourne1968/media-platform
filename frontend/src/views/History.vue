@@ -655,7 +655,7 @@ const handleProjectAction = (command, record) => {
 
 onMounted(() => {
   // 获取用户信息
-  const userInfo = localStorage.getItem('userInfo')
+  const userInfo = sessionStorage.getItem('userInfo')
   if (userInfo) {
     try {
       const user = JSON.parse(userInfo)

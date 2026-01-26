@@ -10,8 +10,8 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   config => {
-    // 从localStorage获取token
-    const token = localStorage.getItem('token')
+    // 从sessionStorage获取token
+    const token = sessionStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -63,8 +63,8 @@ request.interceptors.response.use(
         case 401:
           message = '未授权，请先登录'
           // 清除token，跳转到登录页
-          localStorage.removeItem('token')
-          localStorage.removeItem('userInfo')
+          sessionStorage.removeItem('token')
+          sessionStorage.removeItem('userInfo')
           window.location.href = '/login'
           break
         case 403:

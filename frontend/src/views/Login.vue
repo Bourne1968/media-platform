@@ -114,9 +114,9 @@ const handleLogin = async () => {
       try {
         const res = await login(loginForm)
         if (res.code === 200) {
-          // 保存token和用户信息
-          localStorage.setItem('token', res.data.token)
-          localStorage.setItem('userInfo', JSON.stringify(res.data))
+          // 保存token和用户信息到sessionStorage（关闭浏览器后需要重新登录）
+          sessionStorage.setItem('token', res.data.token)
+          sessionStorage.setItem('userInfo', JSON.stringify(res.data))
           ElMessage.success('登录成功')
           router.push('/workbench')
         }

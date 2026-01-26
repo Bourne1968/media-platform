@@ -40,7 +40,7 @@ const routes = [
     path: '/workbench',
     name: 'Workbench',
     component: Workbench,
-    meta: { requiresAuth: true, title: 'AI创作工作台' }
+    meta: { requiresAuth: true, title: 'AI文案生成页' }
   },
   {
     path: '/cover-design',
@@ -87,7 +87,7 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
+  const token = sessionStorage.getItem('token')
   
   // 定义允许未登录访问的页面
   const guestPaths = ['/', '/login', '/register']
@@ -119,7 +119,7 @@ router.beforeEach((to, from, next) => {
     }
     
     // 确保能正确读取用户信息
-    const userInfo = localStorage.getItem('userInfo')
+    const userInfo = sessionStorage.getItem('userInfo')
     if (!userInfo) {
       console.warn('访问管理员页面但 userInfo 不存在，跳转到首页')
       next('/')

@@ -223,16 +223,16 @@ const handleRegister = async () => {
     console.log('注册响应:', res)
 
     if (res.code === 200) {
-      // 注册成功，保存token和用户信息
+      // 注册成功，保存token和用户信息到sessionStorage（关闭浏览器后需要重新登录）
       if (res.data && res.data.token) {
-        localStorage.setItem('token', res.data.token)
-        localStorage.setItem('userInfo', JSON.stringify({
+        sessionStorage.setItem('token', res.data.token)
+        sessionStorage.setItem('userInfo', JSON.stringify({
           userId: res.data.userId,
           username: res.data.username,
           role: res.data.role,
           avatar: res.data.avatar
         }))
-        console.log('用户信息已保存到localStorage')
+        console.log('用户信息已保存到sessionStorage')
       }
       
       ElMessage.success('注册成功！')

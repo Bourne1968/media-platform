@@ -110,7 +110,7 @@ const userAvatar = ref('')
 
 const navItems = [
   { key: 'home', label: '首页', icon: HomeFilled, route: '/home' },
-  { key: 'workbench', label: 'AI创作工作台', icon: EditPen, route: '/workbench' },
+  { key: 'workbench', label: 'AI文案生成', icon: EditPen, route: '/workbench' },
   { key: 'cover-design', label: 'AI封面设计', icon: Picture, route: '/cover-design' },
   { key: 'inspiration', label: '灵感中心', icon: Star, route: '/inspiration' },
   { key: 'history', label: '创作库', icon: Document, route: '/history' },
@@ -177,8 +177,8 @@ const handleUserCommand = (command) => {
       cancelButtonText: '取消',
       type: 'warning'
     }).then(() => {
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('userInfo')
       router.push('/')
     }).catch(() => {})
   }
@@ -190,14 +190,14 @@ watch(() => route.path, () => {
 }, { immediate: true })
 
 onMounted(() => {
-  const token = localStorage.getItem('token')
+  const token = sessionStorage.getItem('token')
   
   // 设置登录状态
   isLoggedIn.value = !!token
   
   // 加载用户信息
   const loadUserInfo = () => {
-  const userInfo = localStorage.getItem('userInfo')
+  const userInfo = sessionStorage.getItem('userInfo')
   if (userInfo) {
     try {
       const user = JSON.parse(userInfo)
@@ -216,12 +216,8 @@ onMounted(() => {
   
   loadUserInfo()
   
-  // 监听localStorage变化，以便头像更新后能实时显示
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'userInfo') {
-      loadUserInfo()
-    }
-  })
+  // 监听sessionStorage变化，以便头像更新后能实时显示
+  // 注意：storage事件只在其他标签页/窗口触发，同窗口内需要使用自定义事件
   
   // 自定义事件监听（用于同窗口内的更新）
   window.addEventListener('userInfoUpdated', () => {

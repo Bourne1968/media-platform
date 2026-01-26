@@ -397,8 +397,8 @@ const saveProfile = async () => {
       })
       
       if (res.code === 200 && res.data) {
-        // 更新localStorage中的用户信息
-        const userInfo = localStorage.getItem('userInfo')
+        // 更新sessionStorage中的用户信息
+        const userInfo = sessionStorage.getItem('userInfo')
         if (userInfo) {
           try {
             const user = JSON.parse(userInfo)
@@ -427,7 +427,7 @@ const saveProfile = async () => {
               user.gender = profileForm.gender
             }
             
-            localStorage.setItem('userInfo', JSON.stringify(user))
+            sessionStorage.setItem('userInfo', JSON.stringify(user))
             // 触发自定义事件，通知Layout组件更新
             window.dispatchEvent(new Event('userInfoUpdated'))
           } catch (e) {
@@ -497,13 +497,13 @@ const handleAvatarChange = async (file) => {
       if (res.code === 200) {
         profileForm.avatar = base64
         
-        // 更新localStorage中的用户信息
-        const userInfo = localStorage.getItem('userInfo')
+        // 更新sessionStorage中的用户信息
+        const userInfo = sessionStorage.getItem('userInfo')
         if (userInfo) {
           try {
             const user = JSON.parse(userInfo)
             user.avatar = base64
-            localStorage.setItem('userInfo', JSON.stringify(user))
+            sessionStorage.setItem('userInfo', JSON.stringify(user))
             // 触发自定义事件，通知Layout组件更新头像
             window.dispatchEvent(new Event('userInfoUpdated'))
           } catch (e) {
@@ -801,8 +801,8 @@ const deleteAccount = async () => {
       
       if (res.code === 200) {
         // 清除本地存储
-        localStorage.removeItem('token')
-        localStorage.removeItem('userInfo')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('userInfo')
         localStorage.removeItem('userPreferences')
         
         ElMessage.success('账户删除成功')
@@ -864,15 +864,15 @@ onMounted(async () => {
         bio: profileForm.bio,
         gender: profileForm.gender
       }
-      localStorage.setItem('userInfo', JSON.stringify(userInfo))
+      sessionStorage.setItem('userInfo', JSON.stringify(userInfo))
     } else {
-      // 如果从数据库获取失败，从localStorage加载
+      // 如果从数据库获取失败，从sessionStorage加载
       throw new Error('从数据库获取失败')
     }
   } catch (error) {
-    console.warn('从数据库加载用户信息失败，使用localStorage:', error)
-    // 从localStorage加载用户信息（降级方案）
-    const userInfo = localStorage.getItem('userInfo')
+    console.warn('从数据库加载用户信息失败，使用sessionStorage:', error)
+    // 从sessionStorage加载用户信息（降级方案）
+    const userInfo = sessionStorage.getItem('userInfo')
     if (userInfo) {
       try {
         const user = JSON.parse(userInfo)

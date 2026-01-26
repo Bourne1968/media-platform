@@ -23,7 +23,7 @@ const isGuestPage = computed(() => {
 
 onMounted(() => {
   // 如果未登录且不在访客页面，跳转到landing页面
-  const token = localStorage.getItem('token')
+  const token = sessionStorage.getItem('token')
   if (!token && !isGuestPage.value) {
     router.push('/')
   }
